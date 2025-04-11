@@ -1,6 +1,6 @@
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { TaskService } from '../services/task.service';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateTaskDTO, UpdateTaskDTO } from '@/contracts/task.dto';
@@ -21,6 +21,11 @@ export class TaskController {
     @Get("fetch")
     async fetch(@CurrentUser() user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
         return this.TaskService.fetch(user);
+    }
+
+    @Get("search")
+    async fetchByFilter(@Query("q") query: string, @CurrentUser() user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
+        return this.TaskService.fetchBySearch(query, user);
     }
 
     @Put("update/:id")

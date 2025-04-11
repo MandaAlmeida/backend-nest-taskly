@@ -13,10 +13,6 @@ export class TaskService {
     ) { }
 
     async create(task: CreateTaskDTO, user: TokenPayloadSchema): Promise<CreateTaskDTO> {
-        if (!user) {
-            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
-        }
-
         const { name, category, priority, date } = task;
 
         const { sub: userId } = user;
@@ -57,19 +53,42 @@ export class TaskService {
     }
 
     async fetch(user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
-        if (!user) {
-            throw new ForbiddenException("Voce nao tem autorizacao para acessar essa rota");
-        }
-
         const { sub: userId } = user;
         return await this.taskModel.find({ userId }).exec();
     }
 
-    async update(taskId: string, task: UpdateTaskDTO, user: TokenPayloadSchema) {
-        if (!user) {
-            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
+    async fetchBySearch(query: string, user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
+        const { sub: userId } = user;
+        const regex = new RegExp(query, 'i');
+        const isDate = !isNaN(Date.parse(query));
+        const filters: any[] = [
+            { name: { $regex: regex } },
+            { category: { $regex: regex } },
+            { subCategory: { $regex: regex } },
+        ];
+
+        if (isDate) {
+            const searchDate = new Date(query);
+            const nextDay = new Date(searchDate);
+            nextDay.setDate(searchDate.getDate() + 1);
+
+            filters.push({
+                date: {
+                    $gte: searchDate.toISOString(),
+                    $lt: nextDay.toISOString(),
+                },
+            });
         }
 
+        const tasks = await this.taskModel.find({
+            userId,
+            $or: filters,
+        });
+
+        return tasks;
+    }
+
+    async update(taskId: string, task: UpdateTaskDTO, user: TokenPayloadSchema) {
         const { name, category, priority, date, status } = task;
         const { sub: userId } = user;
 
@@ -125,9 +144,6 @@ export class TaskService {
     }
 
     async updateStatus(user: TokenPayloadSchema) {
-        if (!user) {
-            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
-        }
         const { sub: userId } = user;
         const today = new Date().toISOString().split('T')[0];
 
@@ -164,10 +180,6 @@ export class TaskService {
     }
 
     async delete(taskId: string, user: TokenPayloadSchema) {
-        if (!user) {
-            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
-        }
-
         const { sub: userId } = user;
 
         const task = await this.taskModel.findById(taskId).exec();

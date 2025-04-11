@@ -47,10 +47,6 @@ export class SubCategoryService {
     }
 
     async fetch(categoryId: string, user: TokenPayloadSchema) {
-        if (!user || !categoryId) {
-            throw new ForbiddenException("Dados invalidos");
-        }
-
         const { sub: userId } = user;
         const subCategory = await this.subCategoryModel.find({
             userId,
@@ -106,10 +102,6 @@ export class SubCategoryService {
 
 
     async delete(subCategoryId: string, user: TokenPayloadSchema) {
-        if (!user || !subCategoryId) {
-            throw new ForbiddenException("Dados invalidos");
-        }
-
         const { sub: userId } = user;
 
         const subCategory = await this.subCategoryModel.findById(subCategoryId).exec();

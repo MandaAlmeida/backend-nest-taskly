@@ -83,10 +83,6 @@ export class UserService {
     }
 
     async fetch(user: TokenPayloadSchema) {
-        if (!user || !user.sub) {
-            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
-        }
-
         const userId = user.sub;
 
         const userFound = await this.userModel
@@ -102,9 +98,6 @@ export class UserService {
     }
 
     async update(updateData: UpdateUserDTO, user: TokenPayloadSchema) {
-        if (!user) {
-            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
-        }
         const { name, email, password, passwordConfirm } = updateData
         const userId = user.sub;
 

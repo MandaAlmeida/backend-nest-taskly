@@ -33,10 +33,6 @@ export class CategorysService {
     }
 
     async fetch(user: TokenPayloadSchema) {
-        if (!user) {
-            throw new ForbiddenException("Voce nao tem autorizacao para acessar essa rota");
-        }
-
         const { sub: userId } = user;
         return await this.categoryModel.find({ userId }).exec();
     }
@@ -73,11 +69,6 @@ export class CategorysService {
     }
 
     async delete(categoryId: string, user: TokenPayloadSchema) {
-        if (!user || !categoryId) {
-            throw new ForbiddenException("Dados invalidos");
-        }
-
-
         const { sub: userId } = user;
 
         const subCategory = await this.categoryModel.findById(categoryId).exec();
