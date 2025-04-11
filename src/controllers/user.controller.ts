@@ -1,9 +1,9 @@
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
-import { CreateUserDTO, LoginUserDTO } from '@/contracts/user.dto';
+import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from '@/contracts/user.dto';
 import { UserService } from '@/services/user.service';
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 // Controller para buscar categorias
 @Controller("user")
@@ -26,6 +26,12 @@ export class UserController {
     @Get("fetch")
     async fetch(@CurrentUser() user: TokenPayloadSchema) {
         return this.UserService.fetch(user)
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Put("update")
+    async update(@Body() updateUser: UpdateUserDTO, @CurrentUser() user: TokenPayloadSchema) {
+        return this.UserService.update(updateUser, user)
     }
 
     @Delete("delete/:id")

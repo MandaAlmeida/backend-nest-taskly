@@ -1,23 +1,42 @@
 import {
     IsNotEmpty,
+    IsOptional,
     IsString,
 } from "class-validator";
-import { ObjectId } from "mongoose";
+
 
 export class CreateSubCategoryDTO {
     @IsNotEmpty({ message: "Nome da sub categoria é obrigatório" })
     @IsString()
-    readonly subCategory!: string;
+    subCategory: string;
 
     @IsNotEmpty({ message: "Selecionar a categoria é obrigatório" })
     @IsString()
-    readonly category!: string;
+    category: string;
 
     @IsNotEmpty({ message: "Icone é obrigatória" })
     @IsString()
-    readonly icon!: string;
+    icon: string;
 
     @IsNotEmpty({ message: "Cor é obrigatória" })
     @IsString()
-    readonly color!: string;
+    color: string;
+}
+
+export class UpdateSubCategoryDTO {
+    @IsOptional()
+    @IsString()
+    subCategory: string;
+
+    @IsOptional()
+    @IsString()
+    categoryName: string;
+
+    @IsOptional()
+    @IsString()
+    icon: string;
+
+    @IsOptional()
+    @IsString()
+    color: string;
 }

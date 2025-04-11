@@ -7,7 +7,12 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get<ConfigService<Env, true>>(ConfigService)
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: false, //TODO: alterar para true quando todos os contratos possuirem regras de validacao nos campos
+    forbidNonWhitelisted: true,
+    transform: true,
+    disableErrorMessages: false,
+  }));
 
   const port = configService.get("PORT", { infer: true })
 

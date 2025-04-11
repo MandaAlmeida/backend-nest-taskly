@@ -1,9 +1,9 @@
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
-import { CreateCategoryDTO } from '@/contracts/category.dto';
+import { CreateCategoryDTO, UpdateCategoryDTO } from '@/contracts/category.dto';
 import { CategorysService } from '@/services/category.service';
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 // Controller para buscar categorias
 @Controller("categories")
@@ -15,12 +15,17 @@ export class CategoriesController {
 
     @Post("create")
     async create(@Body() category: CreateCategoryDTO, @CurrentUser() user: TokenPayloadSchema) {
-        return this.CategoriesService.execute(category, user);
+        return this.CategoriesService.create(category, user);
     }
 
     @Get("fetch")
     async fetch(@CurrentUser() user: TokenPayloadSchema) {
         return this.CategoriesService.fetch(user);
+    }
+
+    @Put("update/:id")
+    async update(@Param('id') categoryId: string, @Body() category: UpdateCategoryDTO, @CurrentUser() user: TokenPayloadSchema) {
+        return this.CategoriesService.update(categoryId, category, user)
     }
 
     @Delete("delete/:id")

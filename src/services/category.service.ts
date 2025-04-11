@@ -11,7 +11,7 @@ export class CategorysService {
         @InjectModel(Categories.name) private categoryModel: Model<CategoriesDocument>
     ) { }
 
-    async execute(createCategory: CreateCategoryDTO, user: TokenPayloadSchema) {
+    async create(createCategory: CreateCategoryDTO, user: TokenPayloadSchema) {
         const { sub: userId } = user
         const { category, color, icon } = createCategory
 
@@ -21,7 +21,7 @@ export class CategorysService {
         });
 
         if (existingCategory) {
-            throw new ConflictException("Essa categoria já existe para este usuário");
+            throw new ConflictException("Essa categoria já existe");
         }
 
         const Category = { category, color, icon, userId: userId }
@@ -39,6 +39,37 @@ export class CategorysService {
 
         const { sub: userId } = user;
         return await this.categoryModel.find({ userId }).exec();
+    }
+
+    async update(categoryId: string, updateCategory: CreateCategoryDTO, user: TokenPayloadSchema) {
+        const { sub: userId } = user
+        const { category, color, icon } = updateCategory
+
+        const categoryDoc = await this.categoryModel.findById(categoryId);
+
+        if (!categoryDoc) {
+            throw new ConflictException("Essa categoria nao existe");
+        }
+
+        if (categoryDoc.userId !== userId) {
+            throw new ConflictException("Voce nao tem acesso a essa categoria");
+        }
+
+        const existingCategory = await this.categoryModel.findOne({ category, userId });
+
+        if (existingCategory?._id.toString() !== categoryId) {
+            throw new ConflictException("Ja existe uma categoria com esse nome");
+        }
+
+        const categoryToUpdate: any = {};
+
+        if (category) categoryToUpdate.category = category;
+        if (color) categoryToUpdate.color = color;
+        if (icon) categoryToUpdate.icon = icon;
+
+        const createdCategories = await this.categoryModel.findByIdAndUpdate(categoryId, categoryToUpdate, { new: true });
+        return createdCategories;
+
     }
 
     async delete(categoryId: string, user: TokenPayloadSchema) {

@@ -1,9 +1,9 @@
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
-import { CreateSubCategoryDTO } from '@/contracts/subCategory.dto';
+import { CreateSubCategoryDTO, UpdateSubCategoryDTO } from '@/contracts/subCategory.dto';
 import { SubCategoryService } from '@/services/subCategory.service';
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 // Controller para buscar categorias
 @Controller("sub-category")
@@ -22,6 +22,12 @@ export class SubCategoryController {
     async fetch(@Param('id') categoryId: string, @CurrentUser() user: TokenPayloadSchema) {
         return this.SubCategoryService.fetch(categoryId, user);
     }
+
+    @Put("update/:id")
+    async update(@Param('id') subCategoryId: string, @Body() subCategory: UpdateSubCategoryDTO, @CurrentUser() user: TokenPayloadSchema) {
+        return this.SubCategoryService.update(subCategoryId, subCategory, user)
+    }
+
 
     @Delete("delete/:id")
     async delete(@Param('id') subCategoryId: string, @CurrentUser() user: TokenPayloadSchema) {

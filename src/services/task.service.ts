@@ -13,6 +13,10 @@ export class TaskService {
     ) { }
 
     async create(task: CreateTaskDTO, user: TokenPayloadSchema): Promise<CreateTaskDTO> {
+        if (!user) {
+            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
+        }
+
         const { name, category, priority, date } = task;
 
         const { sub: userId } = user;
@@ -62,6 +66,10 @@ export class TaskService {
     }
 
     async update(taskId: string, task: UpdateTaskDTO, user: TokenPayloadSchema) {
+        if (!user) {
+            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
+        }
+
         const { name, category, priority, date, status } = task;
         const { sub: userId } = user;
 
@@ -69,33 +77,42 @@ export class TaskService {
         if (!existingTask) {
             throw new ConflictException("Essa task não existe");
         }
+        if (existingTask.userId !== userId) {
+            throw new ConflictException("Voce nao tem acesso a essa tarefa");
+        }
 
-        // Monta dinamicamente os dados a serem atualizados
+        const existingTaskName = await this.taskModel.findOne({ name, category, date, userId });
+
+        if (existingTaskName?._id.toString() !== taskId) {
+            throw new ConflictException("Ja existe uma subcategoria com esse nome");
+        }
+
         const taskToUpdate: any = {};
 
         if (name) taskToUpdate.name = name;
         if (category) taskToUpdate.category = category;
         if (priority) taskToUpdate.priority = priority;
-        if (date) {
-            taskToUpdate.date = date;
 
-            const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            const taskDateStr = new Date(date).toISOString().split('T')[0];
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+
+        if (status !== 'COMPLETED') {
+            taskToUpdate.status = 'COMPLETED';
+        } else {
+            const taskDateStr = new Date(date || existingTask.date).toISOString().split('T')[0];
 
             if (taskDateStr === todayStr) {
-                taskToUpdate.status = Status.TODAY;
+                taskToUpdate.status = 'TODAY';
             } else if (taskDateStr < todayStr) {
-                taskToUpdate.status = Status.PENDING;
+                taskToUpdate.status = 'PENDING';
             } else {
-                taskToUpdate.status = Status.FUTURE;
+                taskToUpdate.status = 'FUTURE';
             }
         }
-        if (status) {
-            taskToUpdate.status = status;
-        }
 
-        taskToUpdate.userId = userId;
+        if (date) {
+            taskToUpdate.date = date;
+        }
 
         const updatedTask = await this.taskModel.findByIdAndUpdate(
             taskId,
@@ -104,6 +121,46 @@ export class TaskService {
         ).exec();
 
         return updatedTask;
+
+    }
+
+    async updateStatus(user: TokenPayloadSchema) {
+        if (!user) {
+            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
+        }
+        const { sub: userId } = user;
+        const today = new Date().toISOString().split('T')[0];
+
+        const allTasks = await this.taskModel.find({ userId });
+
+        const tasksToUpdate = allTasks.map(task => {
+            const taskDate = new Date(task.date).toISOString().split('T')[0];
+
+            let status = task.status;
+
+            if (task.status !== 'COMPLETED') {
+                if (taskDate === today) {
+                    status = Status.TODAY;
+                } else if (taskDate < today) {
+                    status = Status.PENDING;
+                } else {
+                    status = Status.FUTURE;
+                }
+            }
+
+            return {
+                updateOne: {
+                    filter: { _id: task._id },
+                    update: { status }
+                }
+            };
+        });
+
+        if (tasksToUpdate.length > 0) {
+            await this.taskModel.bulkWrite(tasksToUpdate);
+        }
+
+        return { message: 'Statuses updated successfully' };
     }
 
     async delete(taskId: string, user: TokenPayloadSchema) {

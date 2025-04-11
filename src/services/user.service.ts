@@ -4,7 +4,7 @@ import { JwtService } from "@nestjs/jwt";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { Categories, CategoriesDocument } from "@/models/category.schema";
-import { CreateUserDTO, LoginUserDTO } from "@/contracts/user.dto";
+import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from "@/contracts/user.dto";
 import { compare, hash } from 'bcryptjs';
 import { Task, TaskDocument } from "@/models/tasks.schema";
 import { SubCategory, SubCategoryDocument } from "@/models/subCategory.schema";
@@ -99,6 +99,40 @@ export class UserService {
         }
 
         return userFound;
+    }
+
+    async update(updateData: UpdateUserDTO, user: TokenPayloadSchema) {
+        if (!user) {
+            throw new ForbiddenException("Você não tem autorização para acessar essa rota");
+        }
+        const { name, email, password, passwordConfirm } = updateData
+        const userId = user.sub;
+
+        if (!userId) {
+            throw new NotFoundException("Usuário não encontrado");
+        }
+
+        const existingEmail = await this.userModel.findOne({ email });
+
+        if (existingEmail) {
+            throw new ConflictException('Este usuário já existe');
+        }
+
+        if (password !== passwordConfirm) {
+            throw new BadRequestException("As senhas precisam ser iguais");
+        }
+
+
+        const userToUpdate: any = {};
+
+        if (name) userToUpdate.name = name;
+        if (email) userToUpdate.email = email;
+        if (password) userToUpdate.password = await hash(password, 8);
+
+        const updateUser = await this.userModel.findByIdAndUpdate(userId, userToUpdate, { new: true })
+
+        return updateUser
+
     }
 
     async delete(userId: string) {

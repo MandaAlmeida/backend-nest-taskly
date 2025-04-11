@@ -11,20 +11,20 @@ import {
 export class CreateTaskDTO {
     @IsNotEmpty({ message: "Nome é obrigatório" })
     @IsString()
-    readonly name!: string;
+    name: string;
 
     @IsNotEmpty({ message: "Categoria é obrigatória" })
     @IsString()
-    readonly category!: string;
+    category: string;
 
     @IsNotEmpty({ message: "Prioridade é obrigatória" })
     @IsString()
-    readonly priority!: string;
+    priority: string;
 
     @IsNotEmpty({ message: "Data é obrigatória" })
     @Type(() => Date)
     @IsDate()
-    readonly date!: Date;
+    date: Date;
 }
 
 export class UpdateTaskDTO {

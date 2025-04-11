@@ -3,7 +3,7 @@ import { TokenPayloadSchema } from "@/auth/jwt.strategy";
 import { InjectModel } from "@nestjs/mongoose";
 import { Categories, CategoriesDocument } from "@/models/category.schema";
 import { Model } from "mongoose";
-import { CreateSubCategoryDTO } from "@/contracts/subCategory.dto";
+import { CreateSubCategoryDTO, UpdateSubCategoryDTO } from "@/contracts/subCategory.dto";
 import { SubCategory, SubCategoryDocument } from "@/models/subCategory.schema";
 
 @Injectable()
@@ -60,12 +60,55 @@ export class SubCategoryService {
         return subCategory
     }
 
+    async update(subCategoryId: string, updateData: UpdateSubCategoryDTO, user: TokenPayloadSchema) {
+        const { sub: userId } = user;
+        const { subCategory, categoryName, color, icon } = updateData;
+
+        const subCategoryDoc = await this.subCategoryModel.findById(subCategoryId);
+        if (!subCategoryDoc) {
+            throw new ConflictException("Essa subcategoria não existe");
+        }
+        const existingCategory = await this.categoryModel.findOne({ subCategory, userId });
+
+        if (existingCategory?._id.toString() !== subCategoryId) {
+            throw new ConflictException("Ja existe uma subcategoria com esse nome");
+        }
+
+        const subCategoryToUpdate: any = {};
+
+        if (subCategory) subCategoryToUpdate.subCategory = subCategory;
+        if (color) subCategoryToUpdate.color = color;
+        if (icon) subCategoryToUpdate.icon = icon;
+
+        if (categoryName) {
+            const categoryDoc = await this.categoryModel.findOne({
+                category: categoryName,
+                userId
+            });
+
+            if (!categoryDoc || categoryName === "Todas") {
+                throw new ConflictException("Essa categoria não existe ou nao pode ser utilizada");
+            }
+
+            subCategoryToUpdate.categoryId = categoryDoc._id;
+            subCategoryToUpdate.categoryName = categoryName;
+        }
+
+        const updatedSubCategory = await this.subCategoryModel.findByIdAndUpdate(
+            subCategoryId,
+            subCategoryToUpdate,
+            { new: true }
+        );
+
+        return updatedSubCategory;
+    }
+
+
 
     async delete(subCategoryId: string, user: TokenPayloadSchema) {
         if (!user || !subCategoryId) {
             throw new ForbiddenException("Dados invalidos");
         }
-
 
         const { sub: userId } = user;
 
@@ -75,7 +118,6 @@ export class SubCategoryService {
             throw new NotFoundException("Sub categoria não encontrada");
         }
 
-        // Verifica se o usuário é o dono da task
         if (subCategory.userId.toString() !== userId) {
             throw new ForbiddenException("Você não tem permissão para excluir esta sub categoria");
         }

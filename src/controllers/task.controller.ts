@@ -1,6 +1,6 @@
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { TaskService } from '../services/task.service';
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateTaskDTO, UpdateTaskDTO } from '@/contracts/task.dto';
@@ -26,6 +26,11 @@ export class TaskController {
     @Put("update/:id")
     async update(@Param('id') taskId: string, @Body() task: UpdateTaskDTO, @CurrentUser() user: TokenPayloadSchema) {
         return this.TaskService.update(taskId, task, user)
+    }
+
+    @Patch("update-status")
+    async updateStatus(@CurrentUser() user: TokenPayloadSchema) {
+        return this.TaskService.updateStatus(user)
     }
 
     @Delete("delete/:id")
