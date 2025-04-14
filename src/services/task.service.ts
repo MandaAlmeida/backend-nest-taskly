@@ -54,7 +54,15 @@ export class TaskService {
 
     async fetch(user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
         const { sub: userId } = user;
-        return await this.taskModel.find({ userId }).exec();
+        return await this.taskModel.find({ userId }).sort({ date: 1 }).exec();
+    }
+
+    async fetchByPage(user: TokenPayloadSchema, page: number): Promise<CreateTaskDTO[]> {
+        const { sub: userId } = user;
+
+        const limit = 20;
+        const skip = (page - 1) * limit;
+        return await this.taskModel.find({ userId }).sort({ date: 1 }).skip(skip).limit(limit).exec();
     }
 
     async fetchBySearch(query: string, user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {

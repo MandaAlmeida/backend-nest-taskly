@@ -4,32 +4,32 @@ import mongoose, { Document, ObjectId } from 'mongoose';
 
 export type TaskDocument = Task;
 
-@Schema()
+@Schema({ timestamps: true })
 export class Task {
     @Prop({
         required: true,
         auto: true,
         type: mongoose.Schema.Types.ObjectId,
     })
-    _id!: ObjectId;
+    _id: ObjectId;
 
     @Prop({ required: true })
-    name!: string;
+    name: string;
 
     @Prop({ required: true })
-    category!: string;
+    category: string;
 
     @Prop({ required: true })
-    priority!: string;
+    priority: string;
 
     @Prop({ required: true })
-    date!: Date;
+    date: Date;
 
     @Prop({ required: true })
-    status!: Status;
+    status: Status;
 
     @Prop({ required: true })
-    userId!: string;
+    userId: string;
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

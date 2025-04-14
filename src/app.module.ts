@@ -8,6 +8,8 @@ import { envSchema } from './env';
 import { UserModule } from './modules/user.module';
 import { CategoriesModule } from './modules/categories.module';
 import { SubCategoryModule } from './modules/subCategories.module';
+import { GroupModule } from './modules/group.module';
+import { AnnotationModule } from './modules/annotation.module';
 
 
 config()
@@ -24,6 +26,8 @@ config()
         UserModule,
         AuthModule,
         SubCategoryModule,
+        GroupModule,
+        AnnotationModule
     ],
 })
 export class AppModule {

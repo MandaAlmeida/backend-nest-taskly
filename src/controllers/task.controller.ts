@@ -19,8 +19,14 @@ export class TaskController {
     }
 
     @Get("fetch")
-    async fetch(@CurrentUser() user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
+    async fetchByPage(@CurrentUser() user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
         return this.TaskService.fetch(user);
+    }
+
+
+    @Get("fetchByPage")
+    async fetch(@CurrentUser() user: TokenPayloadSchema, @Query("p") page: number): Promise<CreateTaskDTO[]> {
+        return this.TaskService.fetchByPage(user, page);
     }
 
     @Get("search")

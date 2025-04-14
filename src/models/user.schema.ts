@@ -10,16 +10,22 @@ export class User {
         auto: true,
         type: mongoose.Schema.Types.ObjectId,
     })
-    _id!: ObjectId;
+    _id: ObjectId;
 
     @Prop({ required: true })
-    name!: string;
+    name: string;
 
     @Prop({ required: true })
-    email!: string;
+    email: string;
 
     @Prop({ required: true })
-    password!: string
+    password: string;
+
+    @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'Group', default: [] })
+    groups: mongoose.Types.ObjectId[];
+
+    @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'Annotation', default: [] })
+    sharedAnnotations: mongoose.Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

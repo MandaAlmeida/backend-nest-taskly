@@ -10,19 +10,19 @@ export class Categories {
         auto: true,
         type: mongoose.Schema.Types.ObjectId,
     })
-    _id!: ObjectId;
+    _id: ObjectId;
 
     @Prop({ required: true })
-    category!: string;
+    category: string;
 
     @Prop({ required: true, type: String })
-    icon!: string;
+    icon: string;
 
     @Prop({ required: true, type: String })
-    color!: string;
+    color: string;
 
     @Prop({ required: true, type: String })
-    userId!: string;
+    userId: string;
 }
 
 export const CategoriesSchema = SchemaFactory.createForClass(Categories);
