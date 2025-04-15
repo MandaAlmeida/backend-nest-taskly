@@ -2,7 +2,6 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { TokenPayloadSchema } from "@/auth/jwt.strategy";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { Status } from "@/enum/status.enum";
 import { Annotation, AnnotationDocument } from "@/models/annotations.schema";
 import { CreateAnnotationDTO } from "@/contracts/annotation.dto";
 
@@ -13,7 +12,43 @@ export class AnnotationService {
     ) { }
 
     async create(annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
-        const { title, content, category, attachent, groupId, members } = annotation;
+        const { title, content, category, attachent, members } = annotation;
+
+        const { sub: userId } = user;
+        const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
+
+        if (existingAnnotation) {
+            throw new ConflictException("Essa anotacao já existe");
+        }
+
+        if (members) {
+            const userIds = members.map(member => member.userId.toString());
+
+            const uniqueUserIds = new Set(userIds);
+
+            if (uniqueUserIds.size !== userIds.length) {
+                throw new ConflictException("Não é permitido membros duplicados.");
+            }
+        }
+
+        const annotationToCreate = {
+            title,
+            content,
+            category,
+            attachent,
+            members,
+            createdUserId: userId
+        };
+
+        const createdAnnotation = new this.annotationModel(annotationToCreate);
+        await createdAnnotation.save();
+
+
+        return annotationToCreate;
+    }
+
+    async createByGroup(annotation: CreateAnnotationDTO, groupId: string, user: TokenPayloadSchema) {
+        const { title, content, category, attachent, members } = annotation;
 
         const { sub: userId } = user;
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId, groupId });
@@ -57,7 +92,16 @@ export class AnnotationService {
                 { 'members.userId': userId }
             ]
         };
-        return await this.annotationModel.find(filter).sort({ date: 1 }).exec();
+
+        const Annotations = await this.annotationModel.find(filter).sort({ date: 1 }).exec();
+
+        return Annotations
+    }
+
+    async fetchById(annotationId: string) {
+        const Annotations = await this.annotationModel.findById(annotationId).sort({ date: 1 }).exec();
+
+        return Annotations
     }
 
     async fetchByPage(user: TokenPayloadSchema, page: number) {
@@ -110,24 +154,11 @@ export class AnnotationService {
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);
 
-        if (!existingAnnotation) {
-            throw new ConflictException("Essa anotacao não existe");
-        }
-
-        const isOwner = existingAnnotation.createdUserId.toString() === userId;
-        const isEditor = existingAnnotation.members?.some(
-            (member) => member.userId.toString() === userId && member.accessType === 'admin'
-        );
-
-        if (!isOwner && !isEditor) {
-            throw new ConflictException("Você não tem acesso para editar essa anotação");
-        }
+        if (!existingAnnotation) throw new ConflictException("Essa anotacao não existe");
 
         const existingAnnotationName = await this.annotationModel.findOne({ title, category, createdUserId: userId });
 
-        if (existingAnnotationName) {
-            throw new ConflictException("Ja existe uma anotacao com esse nome");
-        }
+        if (existingAnnotationName) throw new ConflictException("Ja existe uma anotacao com esse nome");
 
         const annotationToUpdate: any = {};
 
@@ -146,66 +177,84 @@ export class AnnotationService {
     }
 
     async addMember(annotationId: string, annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
-        const { members } = annotation;
-        const { sub: userId } = user;
+        const { members = [] } = annotation;
+        const userId = user.sub;
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);
 
-        if (!existingAnnotation) {
-            throw new ConflictException("Essa anotacao não existe");
-        }
+        if (!existingAnnotation) throw new ConflictException("Essa anotação não existe");
 
-        const isOwner = existingAnnotation.createdUserId.toString() === userId;
-        const isEditor = existingAnnotation.members?.some(
-            (member) => member.userId.toString() === userId && member.accessType === 'admin'
+        const editedUserId = members.some(
+            (member) => member.userId.toString() === userId
         );
 
-        if (!isOwner && !isEditor) {
-            throw new ConflictException("Você não tem acesso para editar essa anotação");
-        }
+        if (editedUserId) throw new ConflictException("Você não pode adicionar seu proprio Usuário");
 
-        const annotationToUpdate: any = {};
+        const userIds = members.map(member => member.userId.toString());
 
-        if (members && members.length > 0) {
-            const userIds = members.map(membro => membro.userId.toString());
-            const duplicates = userIds.filter((id, index) => userIds.indexOf(id) !== index);
+        const hasDuplicates = new Set(userIds).size !== userIds.length;
 
-            if (duplicates.length > 0) {
-                throw new ConflictException(`Usuário duplicado na lista de membros`);
+        if (hasDuplicates) throw new ConflictException("Usuário duplicado na lista de membros");
+
+
+        const existingMembers = existingAnnotation.members || [];
+        const newMembers = [...existingMembers];
+
+        for (const member of members) {
+            const alreadyExists = existingMembers.some(
+                ({ userId: existingId }) => existingId.toString() === member.userId.toString()
+            );
+            if (alreadyExists) {
+                throw new ConflictException("Usuário já cadastrado na lista de membros");
             }
-
-            const existingMembers = existingAnnotation.members || [];
-            const updateMembers = [...existingMembers];
-
-            members.forEach(newMember => {
-                const index = updateMembers.findIndex(
-                    member => member.userId.toString() === newMember.userId.toString()
-                );
-
-                if (index < 0) {
-                    updateMembers.push(newMember);
-                } else {
-                    const existingAccess = updateMembers[index].accessType;
-                    const newAccess = newMember.accessType;
-
-                    if (existingAccess !== newAccess) {
-
-                        updateMembers[index].accessType = newAccess;
-                    }
-                }
-            });
-
-            annotationToUpdate.members = updateMembers;
+            newMembers.push(member);
         }
 
         const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
             annotationId,
-            annotationToUpdate,
+            { members: newMembers },
             { new: true }
         ).exec();
 
         return updatedAnnotation;
+    }
 
+    async updatePermissonMember(annotationId: string, memberId: string, body: { accessType: string }, user: TokenPayloadSchema) {
+        const userId = user.sub;
+
+        const type = body.accessType;
+
+        const existingAnnotation = await this.annotationModel.findById(annotationId);
+
+        if (!existingAnnotation) throw new ConflictException("Essa anotação não existe");
+
+        const editedUserId = memberId === userId
+
+        if (editedUserId) throw new ConflictException("Você não pode mudar a permissão do seu proprio usuário");
+
+        const existingMember = existingAnnotation.members.some(member => member.userId.toString() === memberId)
+
+        if (!existingMember) throw new ConflictException("Membro nao existe nessa anotação");
+
+
+        const updatedMembers = existingAnnotation.members.map((member) => {
+            if (member.userId.toString() === memberId) {
+                return {
+                    userId: memberId,
+                    accessType: type,
+                }
+            }
+
+            return member;
+        });
+
+        const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
+            annotationId,
+            { members: updatedMembers },
+            { new: true }
+        ).exec();
+
+        return updatedAnnotation;
     }
 
     async deleteMember(annotationId: string, memberId: string, user: TokenPayloadSchema) {
@@ -213,36 +262,80 @@ export class AnnotationService {
 
         const annotation = await this.annotationModel.findById(annotationId).exec();
 
-        if (!annotation) {
-            throw new NotFoundException("Annotation não encontrada");
-        }
+        if (!annotation) throw new NotFoundException("Anotatacao não encontrada");
 
-        if (annotation.createdUserId.toString() !== userId) {
-            throw new ForbiddenException("Você não tem permissão para excluir esta annotation");
-        }
+        if (annotation.createdUserId.toString() !== userId) throw new ForbiddenException("Você não tem permissão para excluir esta annotation");
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);
 
-        if (!existingAnnotation) {
-            throw new ConflictException("Essa anotacao não existe");
-        }
+        if (!existingAnnotation) throw new ConflictException("Essa anotacao não existe");
 
-        const isOwner = existingAnnotation.createdUserId.toString() === userId;
-        const isEditor = existingAnnotation.members?.some(
-            (member) => member.userId.toString() === userId && member.accessType === 'admin'
-        );
+        const existingMember = existingAnnotation.members.some(member => member.userId.toString() === memberId)
 
-        if (!isOwner && !isEditor) {
-            throw new ConflictException("Você não tem acesso para editar essa anotação");
-        }
+        if (!existingMember) throw new ConflictException("Membro nao existe nessa anotação");
+
 
         const updatedMembers = annotation.members?.filter(
             member => member.userId.toString() !== memberId
-        ) || [];
+        );
 
         const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
             annotationId,
             { members: updatedMembers },
+            { new: true }
+        ).exec();
+
+        return updatedAnnotation;
+
+    }
+
+    async addGroup(annotationId: string, newGroupId: string) {
+        const existingAnnotation = await this.annotationModel.findById(annotationId);
+
+        if (!existingAnnotation) throw new ConflictException("Essa anotação não existe");
+
+
+        const currentGroups = existingAnnotation.groupId || [];
+
+        if (currentGroups) {
+            currentGroups.map(group => {
+                if (group === newGroupId) {
+                    throw new ConflictException("Essa anotacao ja esta neste grupo");
+                }
+            })
+        }
+
+        const updatedGroups = [...currentGroups, newGroupId];
+
+        const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
+            annotationId,
+            { groupId: updatedGroups },
+            { new: true }
+        ).exec();
+
+        return updatedAnnotation;
+    }
+
+    async deleteGroup(annotationId: string, newGroupId: string) {
+        const existingAnnotation = await this.annotationModel.findById(annotationId);
+
+        if (!existingAnnotation) throw new ConflictException("Essa anotacao não existe");
+
+        if (!existingAnnotation.groupId) throw new ConflictException("Essa anotacao nao esta em um grupo");
+
+
+        const existingGroup = existingAnnotation.groupId.map(group => group === newGroupId)
+
+        if (!existingGroup) throw new ConflictException("Grupo nao existe nessa anotação");
+
+
+        const updatedGroups = existingAnnotation.groupId.filter(
+            group => group !== newGroupId
+        );
+
+        const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
+            annotationId,
+            { groupId: updatedGroups },
             { new: true }
         ).exec();
 
@@ -255,13 +348,11 @@ export class AnnotationService {
 
         const annotation = await this.annotationModel.findById(annotationId).exec();
 
-        if (!annotation) {
-            throw new NotFoundException("Annotation não encontrada");
-        }
+        if (!annotation) throw new NotFoundException("Annotation não encontrada");
 
-        if (annotation.createdUserId.toString() !== userId) {
-            throw new ForbiddenException("Você não tem permissão para excluir esta annotation");
-        }
+
+        if (annotation.createdUserId.toString() !== userId) throw new ForbiddenException("Você não tem permissão para excluir esta annotation");
+
 
         await this.annotationModel.findByIdAndDelete(annotationId).exec();
 

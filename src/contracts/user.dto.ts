@@ -1,13 +1,11 @@
 import {
+    IsArray,
     IsEmail,
     IsNotEmpty,
     IsOptional,
     IsString,
     IsStrongPassword,
 } from "class-validator";
-
-type UserType = "admin" | "invited"
-
 
 export class CreateUserDTO {
     @IsNotEmpty({ message: "O nome é obrigatório." })
@@ -17,10 +15,6 @@ export class CreateUserDTO {
     @IsNotEmpty({ message: "O e-mail é obrigatório." })
     @IsEmail({}, { message: "E-mail inválido." })
     email: string;
-
-    @IsNotEmpty({ message: "O tipo de usuário é obrigatório, escolha se e admin ou invited" })
-    @IsString()
-    type: UserType;
 
     @IsNotEmpty({ message: "A senha é obrigatória." })
     @IsStrongPassword(
@@ -61,10 +55,6 @@ export class UpdateUserDTO {
     @IsOptional()
     @IsEmail({}, { message: "E-mail inválido." })
     email: string;
-
-    @IsNotEmpty({ message: "O tipo de usuário é obrigatório." })
-    @IsString()
-    type: UserType;
 
     @IsOptional()
     @IsStrongPassword(

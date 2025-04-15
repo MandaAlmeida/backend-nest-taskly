@@ -1,13 +1,17 @@
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateGroupDTO, UpdateGroupDTO } from '@/contracts/group.dto';
 import { GroupService } from "../services/group.service"
+import { GroupRoleGuard } from '@/guards/roles.guard';
+import { Roles } from '@/decorator/roles.decorator';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-// Controller para buscar categorias
+@ApiTags('Group')
+@ApiBearerAuth('access-token')
 @Controller("group")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GroupRoleGuard)
 export class GroupController {
     constructor(
         private readonly GroupService: GroupService,
@@ -33,20 +37,33 @@ export class GroupController {
         return this.GroupService.fetchBySearch(query, user);
     }
 
+    @Roles("ADMIN")
     @Put("update/:id")
     async update(@Param('id') groupId: string, @Body() group: UpdateGroupDTO, @CurrentUser() user: TokenPayloadSchema) {
         return this.GroupService.update(groupId, group, user)
     }
 
-
-    @Delete("delete/:id")
-    async delete(@Param('id') groupId: string, @CurrentUser() user: TokenPayloadSchema) {
-        return this.GroupService.delete(groupId, user);
+    @Roles("ADMIN")
+    @Patch("update/:groupId/members")
+    async addMember(@Param('groupId') groupId: string, @Body() members: UpdateGroupDTO, @CurrentUser() user: TokenPayloadSchema) {
+        return this.GroupService.addMember(groupId, members)
     }
 
+    @Roles("ADMIN")
+    @Patch("update/:groupId/members/:memberId")
+    async updatePermissonMember(@Param('groupId') groupId: string, @Param('memberId') memberId: string, @Body() body: { accessType: string }) {
+        return this.GroupService.updatePermissonMember(groupId, memberId, body)
+    }
 
+    @Roles("ADMIN")
+    @Delete("delete/:id")
+    async delete(@Param('id') groupId: string) {
+        return this.GroupService.delete(groupId);
+    }
+
+    @Roles("ADMIN")
     @Delete("delete/:groupId/members/:memberId")
-    async deleteMember(@Param('groupId') groupId: string, @Param('memberId') memberId: string, @CurrentUser() user: TokenPayloadSchema) {
-        return this.GroupService.deleteMember(groupId, memberId, user);
+    async deleteMember(@Param('groupId') groupId: string, @Param('memberId') memberId: string) {
+        return this.GroupService.deleteMember(groupId, memberId);
     }
 }

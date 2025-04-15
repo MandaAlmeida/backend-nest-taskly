@@ -3,6 +3,7 @@ import { AnnotationController } from '../controllers/annotation.controller';
 import { AnnotationService } from '../services/annotation.service';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { GroupModule } from './group.module';
 
 
 @Module({
@@ -10,6 +11,7 @@ import { MongooseModule } from '@nestjs/mongoose';
         MongooseModule.forFeature([
             { name: Annotation.name, schema: AnnotationSchema },
         ]),
+        GroupModule
     ],
     controllers: [AnnotationController],
     providers: [AnnotationService],

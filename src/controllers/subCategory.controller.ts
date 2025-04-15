@@ -4,8 +4,10 @@ import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateSubCategoryDTO, UpdateSubCategoryDTO } from '@/contracts/subCategory.dto';
 import { SubCategoryService } from '@/services/subCategory.service';
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-// Controller para buscar categorias
+@ApiTags('Sub Category')
+@ApiBearerAuth('access-token')
 @Controller("sub-category")
 @UseGuards(JwtAuthGuard)
 export class SubCategoryController {

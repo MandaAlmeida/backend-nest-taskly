@@ -23,7 +23,7 @@ export class UserService {
     ) { }
 
     async create(user: CreateUserDTO) {
-        const { name, email, password, type, passwordConfirm } = user
+        const { name, email, password, passwordConfirm } = user
 
         if (passwordConfirm !== password) {
             throw new BadRequestException("As senhas precisam ser iguais");
@@ -41,7 +41,6 @@ export class UserService {
             name,
             email,
             password: hashedPassword,
-            type
         };
 
         const createdUser = new this.userModel(newUser);
@@ -99,7 +98,7 @@ export class UserService {
     }
 
     async update(updateData: UpdateUserDTO, user: TokenPayloadSchema) {
-        const { name, email, type, password, passwordConfirm } = updateData
+        const { name, email, password, passwordConfirm } = updateData
         const userId = user.sub;
 
         if (!userId) {
@@ -121,7 +120,6 @@ export class UserService {
 
         if (name) userToUpdate.name = name;
         if (email) userToUpdate.email = email;
-        if (type) userToUpdate.type = type;
         if (password) userToUpdate.password = await hash(password, 8);
 
         const updateUser = await this.userModel.findByIdAndUpdate(userId, userToUpdate, { new: true })

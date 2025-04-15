@@ -13,6 +13,6 @@ import { MongooseModule } from '@nestjs/mongoose';
     ],
     controllers: [GroupController],
     providers: [GroupService],
-    exports: [MongooseModule]
+    exports: [MongooseModule, GroupService]
 })
 export class GroupModule { }

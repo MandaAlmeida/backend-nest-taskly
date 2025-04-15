@@ -4,8 +4,10 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuard
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateTaskDTO, UpdateTaskDTO } from '@/contracts/task.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-// Controller para buscar categorias
+@ApiTags('Task')
+@ApiBearerAuth('access-token')
 @Controller("task")
 @UseGuards(JwtAuthGuard)
 export class TaskController {

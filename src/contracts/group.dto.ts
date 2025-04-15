@@ -26,6 +26,10 @@ export class CreateGroupDTO {
     @IsOptional()
     @IsString()
     description?: string;
+
+    @IsOptional()
+    @IsArray()
+    annotationsId?: []
 }
 
 export class UpdateGroupDTO {
@@ -46,4 +50,8 @@ export class UpdateGroupDTO {
     @IsOptional()
     @IsString()
     description?: string;
+
+    @IsOptional()
+    @IsArray()
+    annotationsId?: []
 }

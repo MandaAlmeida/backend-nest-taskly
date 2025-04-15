@@ -1,3 +1,4 @@
+import { UserRole } from '@/enum/userRole.enum';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument, ObjectId } from 'mongoose';
 
@@ -22,14 +23,14 @@ export class Group {
         type: [
             {
                 userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-                accessType: { type: String, enum: ['admin', 'invited'], required: true }
+                accessType: { type: String, required: true }
             }
         ],
         default: []
     })
     members: {
         userId: ObjectId;
-        accessType: 'admin' | 'invited';
+        accessType: UserRole;
     }[];
 
     @Prop()

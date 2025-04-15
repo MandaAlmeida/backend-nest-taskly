@@ -21,11 +21,11 @@ export class User {
     @Prop({ required: true })
     password: string;
 
-    @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'Group', default: [] })
-    groups: mongoose.Types.ObjectId[];
+    @Prop({ type: Array, ref: 'Group', default: [] })
+    groups: [];
 
-    @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'Annotation', default: [] })
-    sharedAnnotations: mongoose.Types.ObjectId[];
+    @Prop({ type: Array, ref: 'Annotation', default: [] })
+    sharedAnnotations: [];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -4,8 +4,9 @@ import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from '@/contracts/user.dto';
 import { UserService } from '@/services/user.service';
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-// Controller para buscar categorias
+@ApiTags('User')
 @Controller("user")
 export class UserController {
     constructor(
@@ -22,18 +23,23 @@ export class UserController {
         return this.UserService.login(user)
     }
 
+
+    @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
     @Get("fetch")
     async fetch(@CurrentUser() user: TokenPayloadSchema) {
         return this.UserService.fetch(user)
     }
 
+    @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
     @Put("update")
     async update(@Body() updateUser: UpdateUserDTO, @CurrentUser() user: TokenPayloadSchema) {
         return this.UserService.update(updateUser, user)
     }
 
+    @ApiBearerAuth('access-token')
+    @UseGuards(JwtAuthGuard)
     @Delete("delete/:id")
     async delete(@Param('id') userId: string) {
         return this.UserService.delete(userId)

@@ -58,6 +58,10 @@ export class GroupService {
         return await this.groupModel.find(filter).exec();
     }
 
+    async fetchById(groupId: string) {
+        return await this.groupModel.findById(groupId).exec();
+    }
+
     async fetchByPage(user: TokenPayloadSchema, page: number) {
         const { sub: userId } = user;
 
@@ -107,12 +111,8 @@ export class GroupService {
         const { sub: userId } = user;
 
         const existingGroup = await this.groupModel.findById(groupId);
-        if (!existingGroup) {
-            throw new ConflictException("Essa group não existe");
-        }
-        if (existingGroup.createdUserId.toString() !== userId) {
-            throw new ConflictException("Voce nao tem acesso a essa tarefa");
-        }
+        if (!existingGroup) throw new ConflictException("Essa group não existe");
+
 
         const existingGroupName = await this.groupModel.findOne({ name, createdUserId: userId });
 
@@ -164,37 +164,63 @@ export class GroupService {
 
     }
 
-    async deleteMember(groupId: string, memberId: string, user: TokenPayloadSchema) {
-        const { sub: userId } = user;
+    async addMember(groupId: string, group: CreateGroupDTO) {
+        const { members = [] } = group;
 
-        const group = await this.groupModel.findById(groupId).exec();
+        const existingGroup = await this.groupModel.findById(groupId);
+        if (!existingGroup) throw new ConflictException("Essa anotação não existe");
 
-        if (!group) {
-            throw new NotFoundException("Group não encontrada");
+
+        const userIds = members.map(m => m.userId.toString());
+
+        const hasDuplicates = new Set(userIds).size !== userIds.length;
+
+        if (hasDuplicates) throw new ConflictException("Usuário duplicado na lista de membros");
+
+
+        const existingMembers = existingGroup.members || [];
+        const newMembers = [...existingMembers];
+
+        for (const member of members) {
+            const alreadyExists = existingMembers.some(
+                ({ userId: existingId }) => existingId.toString() === member.userId.toString()
+            );
+            if (alreadyExists) {
+                throw new ConflictException("Usuário já cadastrado na lista de membros");
+            }
+            newMembers.push(member);
         }
 
-        if (group.createdUserId.toString() !== userId) {
-            throw new ForbiddenException("Você não tem permissão para excluir esta group");
-        }
+        const updatedGroup = await this.groupModel.findByIdAndUpdate(
+            groupId,
+            { members: newMembers },
+            { new: true }
+        ).exec();
+
+        return updatedGroup;
+    }
+
+    async updatePermissonMember(groupId: string, memberId: string, body: { accessType: string }) {
+        const type = body.accessType;
 
         const existingGroup = await this.groupModel.findById(groupId);
 
-        if (!existingGroup) {
-            throw new ConflictException("Essa anotacao não existe");
-        }
+        if (!existingGroup) throw new ConflictException("Essa anotação não existe");
 
-        const isOwner = existingGroup.createdUserId.toString() === userId;
-        const isEditor = existingGroup.members?.some(
-            (member) => member.userId.toString() === userId && member.accessType === 'admin'
-        );
+        const existingMember = existingGroup.members.some(member => member.userId.toString() === memberId)
 
-        if (!isOwner && !isEditor) {
-            throw new ConflictException("Você não tem acesso para editar essa anotação");
-        }
+        if (!existingMember) throw new ConflictException("Membro nao existe nessa anotação");
 
-        const updatedMembers = group.members?.filter(
-            member => member.userId.toString() !== memberId
-        ) || [];
+        const updatedMembers = existingGroup.members.map((member) => {
+            if (member.userId.toString() === memberId) {
+                return {
+                    userId: memberId,
+                    accessType: type,
+                }
+            }
+
+            return member;
+        });
 
         const updatedGroup = await this.groupModel.findByIdAndUpdate(
             groupId,
@@ -203,24 +229,39 @@ export class GroupService {
         ).exec();
 
         return updatedGroup;
-
     }
 
-    async delete(groupId: string, user: TokenPayloadSchema) {
-        const { sub: userId } = user;
-
+    async deleteMember(groupId: string, memberId: string) {
         const group = await this.groupModel.findById(groupId).exec();
 
-        if (!group) {
-            throw new NotFoundException("Grupo não encontrada");
-        }
+        if (!group) throw new NotFoundException("Anotatacao não encontrada");
 
-        // Verifica se o usuário é o dono da group
-        if (group.createdUserId.toString() !== userId) {
-            throw new ForbiddenException("Você não tem permissão para excluir esta group");
-        }
+        const existingGroup = await this.groupModel.findById(groupId);
 
-        // Se for o dono, pode deletar
+        if (!existingGroup) throw new ConflictException("Essa anotacao não existe");
+
+        const existingMember = existingGroup.members.some(member => member.userId.toString() === memberId)
+
+        if (!existingMember) throw new ConflictException("Membro nao existe nessa anotação");
+
+        const updatedMembers = group.members?.filter(
+            member => member.userId.toString() !== memberId
+        );
+
+        const updatedGroup = await this.groupModel.findByIdAndUpdate(
+            groupId,
+            { members: updatedMembers },
+            { new: true }
+        ).exec();
+
+        return updatedGroup;
+    }
+
+    async delete(groupId: string) {
+        const group = await this.groupModel.findById(groupId).exec();
+
+        if (!group) throw new NotFoundException("Grupo não encontrada");
+
         await this.groupModel.findByIdAndDelete(groupId).exec();
 
         return { message: "Grupo excluída com sucesso" };

@@ -4,8 +4,10 @@ import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateCategoryDTO, UpdateCategoryDTO } from '@/contracts/category.dto';
 import { CategorysService } from '@/services/category.service';
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
-// Controller para buscar categorias
+@ApiTags('Category')
+@ApiBearerAuth('access-token')
 @Controller("categories")
 @UseGuards(JwtAuthGuard)
 export class CategoriesController {
