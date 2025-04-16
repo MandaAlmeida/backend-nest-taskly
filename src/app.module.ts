@@ -4,12 +4,13 @@ import { config } from 'dotenv';
 import { TaskModule } from './modules/task.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { envSchema } from './env';
 import { UserModule } from './modules/user.module';
 import { CategoriesModule } from './modules/categories.module';
 import { SubCategoryModule } from './modules/subCategories.module';
 import { GroupModule } from './modules/group.module';
 import { AnnotationModule } from './modules/annotation.module';
+import { UploadModule } from './modules/upload.module';
+import { envSchema } from './env/env';
 
 
 config()
@@ -27,7 +28,8 @@ config()
         AuthModule,
         SubCategoryModule,
         GroupModule,
-        AnnotationModule
+        AnnotationModule,
+        UploadModule
     ],
 })
 export class AppModule {

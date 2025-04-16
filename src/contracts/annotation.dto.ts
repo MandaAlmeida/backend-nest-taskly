@@ -54,26 +54,11 @@ export class CreateAnnotationDTO {
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => AttachentDTO)
-    @ApiProperty({
-        description: "Anexos da anotacao",
-        example: {
-            "attachent": [
-                {
-                    "title": "logo do nest",
-                    "url": "src/assets/logo_nest.jpg"
-                }
-            ]
-        }
-    })
     attachent?: AttachentDTO[];
 
     @IsOptional()
     @IsArray()
     @IsString({ each: true })
-    @ApiProperty({
-        description: "Adiciona a anotacao em um grupo",
-        example: "groupId: 67fd54db7645e149acd4d890"
-    })
     groupId?: string[];
 }
 
@@ -108,14 +93,12 @@ export class UpdateAnnotationDTO {
     @Type(() => MemberDTO)
     @ApiProperty({
         description: "Com quem voce quer compartilhar essa anotacao",
-        example: {
-            "members": [
-                {
-                    "userId": "67f84a94f3512313ce56e030",
-                    "accessType": "VIEWER"
-                }
-            ]
-        }
+        example: [
+            {
+                "userId": "67f84a94f3512313ce56e030",
+                "accessType": "VIEWER"
+            }
+        ]
     })
     members?: MemberDTO[];
 
@@ -123,25 +106,10 @@ export class UpdateAnnotationDTO {
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => AttachentDTO)
-    @ApiProperty({
-        description: "Anexos da anotacao",
-        example: {
-            "attachent": [
-                {
-                    "title": "logo do nest",
-                    "url": "src/assets/logo_nest.jpg"
-                }
-            ]
-        }
-    })
     attachent?: AttachentDTO[];
 
     @IsOptional()
     @IsArray()
     @IsString({ each: true })
-    @ApiProperty({
-        description: "Adiciona a anotacao em um grupo",
-        example: "67fd54db7645e149acd4d890"
-    })
     groupId?: string[];
 }

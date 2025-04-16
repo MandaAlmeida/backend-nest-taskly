@@ -1,15 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { Env } from './env';
 import { ValidationPipe } from '@nestjs/common';
 import { initSwagger } from './swagger';
+import { EnvService } from './env/env.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   initSwagger(app);
 
-  const configService = app.get<ConfigService<Env, true>>(ConfigService)
+  const envService = app.get(EnvService)
   app.useGlobalPipes(new ValidationPipe({
     whitelist: false, //TODO: alterar para true quando todos os contratos possuirem regras de validacao nos campos
     forbidNonWhitelisted: true,
@@ -17,7 +17,7 @@ async function bootstrap() {
     disableErrorMessages: false,
   }));
 
-  const port = configService.get("PORT", { infer: true })
+  const port = envService.get("PORT")
 
   await app.listen(port);
 }

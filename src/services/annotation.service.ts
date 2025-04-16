@@ -51,7 +51,7 @@ export class AnnotationService {
         const { title, content, category, attachent, members } = annotation;
 
         const { sub: userId } = user;
-        const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId, groupId });
+        const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
 
         if (existingAnnotation) {
             throw new ConflictException("Essa anotacao já existe");
@@ -83,7 +83,17 @@ export class AnnotationService {
         return annotationToCreate;
     }
 
-    async fetch(user: TokenPayloadSchema) {
+    async fetchByUser(user: TokenPayloadSchema, page: number) {
+        const { sub: userId } = user;
+
+        const limit = 10;
+        const skip = (page - 1) * limit;
+        const Annotations = await this.annotationModel.find({ createdUserId: userId }).sort({ date: 1 }).skip(skip).limit(limit).exec();
+
+        return Annotations
+    }
+
+    async fetchByGroup(user: TokenPayloadSchema) {
         const { sub: userId } = user;
 
         const filter = {
@@ -343,7 +353,7 @@ export class AnnotationService {
 
     }
 
-    async delete(annotationId: string, user: TokenPayloadSchema) {
+    async deleteAnnotation(annotationId: string, user: TokenPayloadSchema) {
         const { sub: userId } = user;
 
         const annotation = await this.annotationModel.findById(annotationId).exec();
@@ -353,6 +363,16 @@ export class AnnotationService {
 
         if (annotation.createdUserId.toString() !== userId) throw new ForbiddenException("Você não tem permissão para excluir esta annotation");
 
+
+        await this.annotationModel.findByIdAndDelete(annotationId).exec();
+
+        return { message: "Anotacao excluída com sucesso" };
+    }
+
+    async deleteAnnotationByGroup(annotationId: string, groupId: string) {
+        const annotation = await this.annotationModel.findOne({ _id: annotationId, groupId }).exec();
+
+        if (!annotation) throw new NotFoundException("Anotacao não encontrada");
 
         await this.annotationModel.findByIdAndDelete(annotationId).exec();
 

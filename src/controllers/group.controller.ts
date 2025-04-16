@@ -4,14 +4,14 @@ import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateGroupDTO, UpdateGroupDTO } from '@/contracts/group.dto';
 import { GroupService } from "../services/group.service"
-import { GroupRoleGuard } from '@/guards/roles.guard';
+import { RoleGuard } from '@/guards/roles.guard';
 import { Roles } from '@/decorator/roles.decorator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Group')
 @ApiBearerAuth('access-token')
 @Controller("group")
-@UseGuards(JwtAuthGuard, GroupRoleGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 export class GroupController {
     constructor(
         private readonly GroupService: GroupService,

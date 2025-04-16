@@ -15,10 +15,10 @@ export class SubCategoryService {
 
     async create(createCategory: CreateSubCategoryDTO, user: TokenPayloadSchema) {
         const { sub: userId } = user
-        const { subCategory, category, color, icon } = createCategory;
+        const { subCategory, categoryName, color, icon } = createCategory;
 
         const categoryId = await this.categoryModel.findOne({
-            category,
+            category: categoryName,
             userId
         });
 
@@ -28,7 +28,7 @@ export class SubCategoryService {
 
         const existingSubCategory = await this.subCategoryModel.findOne({
             subCategory,
-            categoryName: category,
+            categoryName,
             userId
         });
 
@@ -38,7 +38,7 @@ export class SubCategoryService {
             throw new ConflictException("Essa sub categoria já existe para essa categoria");
         }
 
-        const Category = { subCategory, categoryName: category, categoryId: categoryId._id, color, icon, userId: userId }
+        const Category = { subCategory, categoryName, categoryId: categoryId._id, color, icon, userId: userId }
 
         const createdCategories = new this.subCategoryModel(Category);
         await createdCategories.save();
