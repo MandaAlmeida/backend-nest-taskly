@@ -4,15 +4,17 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { Annotation, AnnotationDocument } from "@/models/annotations.schema";
 import { CreateAnnotationDTO } from "@/contracts/annotation.dto";
+import { UploadService } from "./upload.service";
 
 @Injectable()
 export class AnnotationService {
     constructor(
-        @InjectModel(Annotation.name) private annotationModel: Model<AnnotationDocument>
+        @InjectModel(Annotation.name) private annotationModel: Model<AnnotationDocument>,
+        private uploadService: UploadService
     ) { }
 
     async create(annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
-        const { title, content, category, attachent, members } = annotation;
+        const { title, content, category, attachment, members } = annotation;
 
         const { sub: userId } = user;
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
@@ -30,12 +32,18 @@ export class AnnotationService {
                 throw new ConflictException("Não é permitido membros duplicados.");
             }
         }
+        let uploadedFileUrl: string | null = null;
+
+        if (attachment) {
+            const result = await this.uploadService.upload(attachment);
+            uploadedFileUrl = result?.url || null;
+        }
 
         const annotationToCreate = {
             title,
             content,
             category,
-            attachent,
+            attachment: uploadedFileUrl,
             members,
             createdUserId: userId
         };
@@ -48,7 +56,7 @@ export class AnnotationService {
     }
 
     async createByGroup(annotation: CreateAnnotationDTO, groupId: string, user: TokenPayloadSchema) {
-        const { title, content, category, attachent, members } = annotation;
+        const { title, content, category, attachment, members } = annotation;
 
         const { sub: userId } = user;
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
@@ -67,12 +75,18 @@ export class AnnotationService {
             }
         }
 
+        let uploadedFileUrl: string | null = null;
+
+        if (attachment) {
+            const result = await this.uploadService.upload(attachment);
+            uploadedFileUrl = result?.url || null;
+        }
+
         const annotationToCreate = {
             title,
             content,
             category,
-            attachent,
-            groupId,
+            attachment: uploadedFileUrl,
             members,
             createdUserId: userId
         };
@@ -159,7 +173,35 @@ export class AnnotationService {
     }
 
     async update(annotationId: string, annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
-        const { title, content, category, attachent, groupId, members } = annotation;
+        const { title, content, category, attachment } = annotation;
+        const { sub: userId } = user;
+
+        const existingAnnotation = await this.annotationModel.findById(annotationId);
+
+        if (!existingAnnotation) throw new ConflictException("Essa anotacao não existe");
+
+        const existingAnnotationName = await this.annotationModel.findOne({ title, category, createdUserId: userId });
+
+        if (existingAnnotationName) throw new ConflictException("Ja existe uma anotacao com esse nome");
+
+        const annotationToUpdate: any = {};
+
+        if (title) annotationToUpdate.title = title;
+        if (category) annotationToUpdate.category = category;
+        if (content) annotationToUpdate.content = content;
+
+        const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
+            annotationId,
+            annotationToUpdate,
+            { new: true }
+        ).exec();
+
+        return updatedAnnotation;
+
+    }
+
+    async updateByGroup(annotationId: string, groupId: string, annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
+        const { title, content, category, attachment } = annotation;
         const { sub: userId } = user;
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);

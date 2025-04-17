@@ -40,6 +40,9 @@ export class Annotation {
 
     @Prop({ type: Array, ref: 'Group', required: false })
     groupId?: [];
+
+    @Prop({ type: Array, ref: 'Attachent', required: false })
+    attachment?: [];
 }
 
 export const AnnotationSchema = SchemaFactory.createForClass(Annotation);

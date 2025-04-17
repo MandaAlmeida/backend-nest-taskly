@@ -40,9 +40,17 @@ export class RoleGuard implements CanActivate {
             ? await this.checkGroupPermission(groupId, user.sub, requiredRoles)
             : false;
 
-        if (annotationId && groupId && hasAnnotationPermission && hasGroupPermission) return true;
-        if (annotationId && hasAnnotationPermission) return true;
-        if (groupId && hasGroupPermission) return true;
+
+        console.log(annotationId, groupId, hasAnnotationPermission, hasGroupPermission, user)
+        if (annotationId && groupId && hasAnnotationPermission && hasGroupPermission) {
+            return true;
+        }
+        if (annotationId && hasAnnotationPermission && groupId === undefined) {
+            return true;
+        }
+        if (groupId && hasGroupPermission) {
+            return true;
+        }
 
         throw new ForbiddenException('Você não tem permissão para acessar essa rota');
     }

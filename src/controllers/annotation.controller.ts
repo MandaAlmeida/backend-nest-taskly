@@ -1,12 +1,13 @@
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { AnnotationService } from '../services/annotation.service';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateAnnotationDTO, UpdateAnnotationDTO, } from '@/contracts/annotation.dto';
 import { Roles } from '@/decorator/roles.decorator';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { RoleGuard } from '@/guards/roles.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Annotation')
 @Controller("annotation")
@@ -19,12 +20,15 @@ export class AnnotationController {
     ) { }
 
     @Post("create")
-    async create(@Body() event: CreateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.create(event, user);
+    @UseInterceptors(FileInterceptor('attachment'))
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({ type: CreateAnnotationDTO })
+    async create(@UploadedFile() file: Express.Multer.File, @Body() body: CreateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
+        return this.AnnotationService.create({ ...body, attachment: file }, user);
     }
 
 
-    @Roles("ADMIN", "EDITOR", "DELETE")
+    @Roles("ADMIN", "EDIT", "DELETE")
     @Post("createByGroup/:groupId")
     async createByGroup(@Body() event: CreateAnnotationDTO, @Param("groupId") groupId: string, @CurrentUser() user: TokenPayloadSchema) {
         return this.AnnotationService.createByGroup(event, groupId, user);
@@ -55,10 +59,16 @@ export class AnnotationController {
         return this.AnnotationService.fetchBySearch(query, user);
     }
 
-    @Roles("ADMIN", "EDITOR", "DELETE")
+    @Roles("ADMIN", "EDIT", "DELETE")
     @Put("update/:annotationId")
     async update(@Param('annotationId') annotationId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
         return this.AnnotationService.update(annotationId, annotation, user)
+    }
+
+    @Roles("ADMIN", "EDIT", "DELETE")
+    @Put("update/:annotationId/groups/:groupId")
+    async updateByGroup(@Param('annotationId') annotationId: string, @Param('groupId') groupId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
+        return this.AnnotationService.updateByGroup(annotationId, groupId, annotation, user)
     }
 
     @Roles("ADMIN")

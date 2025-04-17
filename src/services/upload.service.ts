@@ -1,10 +1,50 @@
-import { UploadDTO } from '@/contracts/upload.dto';
-import { Injectable } from '@nestjs/common';
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { randomUUID } from "node:crypto";
+import { Injectable } from "@nestjs/common";
+import { EnvService } from "@/env/env.service";
+import { UploadDTO } from "@/contracts/upload.dto";
+import { Upload } from "@aws-sdk/lib-storage";
 
 @Injectable()
 export class UploadService {
+    private client: S3Client
 
-    async upload(file: UploadDTO) {
+    constructor(
+        private envService: EnvService
+    ) {
+        const accountId = envService.get("CLOUDFLARE_ACCOUNT_ID")
+
+        this.client = new S3Client({
+            endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+            region: "auto",
+            credentials: {
+                accessKeyId: envService.get("AWS_ACCESS_KEY_ID"),
+                secretAccessKey: envService.get("AWS_SECRET_ACCESS_KEY")
+            }
+
+        })
+    }
+
+    async upload(file: UploadDTO): Promise<{ url: string; }> {
+        const uploadId = randomUUID()
+        const uniqueFileName = `${uploadId}-${file.originalname}`
+
+        const upload = new Upload({
+            client: this.client,
+            params: {
+                Bucket: this.envService.get("AWS_BUCKET_NAME"),
+                Key: uniqueFileName,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+            },
+        });
+
+        await upload.done();
+
         console.log(file)
+
+        return {
+            url: uniqueFileName,
+        }
     }
 }

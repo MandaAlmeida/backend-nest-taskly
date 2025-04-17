@@ -7,8 +7,8 @@ import {
     ValidateNested,
 } from "class-validator";
 import { MemberDTO } from "./member.dto";
-import { AttachentDTO } from "./attachment.dto";
 import { ApiProperty } from "@nestjs/swagger";
+import { UploadDTO } from "./upload.dto";
 
 export class CreateAnnotationDTO {
     @IsNotEmpty({ message: "Titulo é obrigatório" })
@@ -50,11 +50,9 @@ export class CreateAnnotationDTO {
     })
     members?: MemberDTO[];
 
+    @ApiProperty({ type: 'string', format: 'binary', required: false })
     @IsOptional()
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => AttachentDTO)
-    attachent?: AttachentDTO[];
+    attachment?: Express.Multer.File;
 
     @IsOptional()
     @IsArray()
@@ -102,11 +100,9 @@ export class UpdateAnnotationDTO {
     })
     members?: MemberDTO[];
 
+    @ApiProperty({ type: 'string', format: 'binary', required: false })
     @IsOptional()
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => AttachentDTO)
-    attachent?: AttachentDTO[];
+    attachment?: Express.Multer.File;
 
     @IsOptional()
     @IsArray()

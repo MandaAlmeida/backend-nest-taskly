@@ -16,4 +16,11 @@ export class AttachentDTO {
     })
     url: string;
 
+
+    static create(title: string, url: string): AttachentDTO {
+        const attachment = new AttachentDTO()
+        attachment.title = title;
+        attachment.url = url;
+        return attachment
+    }
 }
