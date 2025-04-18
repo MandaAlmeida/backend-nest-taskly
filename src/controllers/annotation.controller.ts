@@ -5,9 +5,10 @@ import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateAnnotationDTO, UpdateAnnotationDTO, } from '@/contracts/annotation.dto';
 import { Roles } from '@/decorator/roles.decorator';
-import { ApiTags, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiBody, ApiConsumes, ApiProperty } from '@nestjs/swagger';
 import { RoleGuard } from '@/guards/roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { IsString } from 'class-validator';
 
 @ApiTags('Annotation')
 @Controller("annotation")
@@ -24,14 +25,17 @@ export class AnnotationController {
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: CreateAnnotationDTO })
     async create(@UploadedFile() file: Express.Multer.File, @Body() body: CreateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.create({ ...body, attachment: file }, user);
+        return this.AnnotationService.create(body, file, user);
     }
 
 
     @Roles("ADMIN", "EDIT", "DELETE")
     @Post("createByGroup/:groupId")
-    async createByGroup(@Body() event: CreateAnnotationDTO, @Param("groupId") groupId: string, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.createByGroup(event, groupId, user);
+    @UseInterceptors(FileInterceptor('attachment'))
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({ type: CreateAnnotationDTO })
+    async createByGroup(@UploadedFile() file: Express.Multer.File, @Body() body: CreateAnnotationDTO, @Param("groupId") groupId: string, @CurrentUser() user: TokenPayloadSchema) {
+        return this.AnnotationService.createByGroup(body, groupId, file, user);
     }
 
     @Get("fetchByUser")
@@ -61,14 +65,20 @@ export class AnnotationController {
 
     @Roles("ADMIN", "EDIT", "DELETE")
     @Put("update/:annotationId")
-    async update(@Param('annotationId') annotationId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.update(annotationId, annotation, user)
+    @UseInterceptors(FileInterceptor('attachment'))
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({ type: UpdateAnnotationDTO })
+    async update(@Param('annotationId') annotationId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFile() file: Express.Multer.File) {
+        return this.AnnotationService.update(annotationId, annotation, file, user)
     }
 
     @Roles("ADMIN", "EDIT", "DELETE")
     @Put("update/:annotationId/groups/:groupId")
-    async updateByGroup(@Param('annotationId') annotationId: string, @Param('groupId') groupId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.updateByGroup(annotationId, groupId, annotation, user)
+    @UseInterceptors(FileInterceptor('attachment'))
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({ type: UpdateAnnotationDTO })
+    async updateByGroup(@Param('annotationId') annotationId: string, @Param('groupId') groupId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFile() file: Express.Multer.File) {
+        return this.AnnotationService.updateByGroup(annotationId, groupId, annotation, file, user)
     }
 
     @Roles("ADMIN")
@@ -90,9 +100,15 @@ export class AnnotationController {
     }
 
     @Roles("ADMIN", "DELETE")
+    @Delete("delete/:annotationId/attachment")
+    async deleteAttachment(@Param('annotationId') annotationId: string, @Query("anexo") attachmentName: string) {
+        return this.AnnotationService.deleteAttachment(annotationId, attachmentName);
+    }
+
+    @Roles("ADMIN", "DELETE")
     @Delete("delete/:annotationId")
     async deleteByUser(@Param('annotationId') annotationId: string, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.deleteAnnotation(annotationId, user);
+        return this.AnnotationService.deleteAnnotation(annotationId);
     }
 
     @Roles("ADMIN", "DELETE")

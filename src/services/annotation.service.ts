@@ -3,8 +3,9 @@ import { TokenPayloadSchema } from "@/auth/jwt.strategy";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { Annotation, AnnotationDocument } from "@/models/annotations.schema";
-import { CreateAnnotationDTO } from "@/contracts/annotation.dto";
+import { CreateAnnotationDTO, UpdateAnnotationDTO } from "@/contracts/annotation.dto";
 import { UploadService } from "./upload.service";
+import { AttachmentDTO } from "@/contracts/attachment.dto";
 
 @Injectable()
 export class AnnotationService {
@@ -13,8 +14,8 @@ export class AnnotationService {
         private uploadService: UploadService
     ) { }
 
-    async create(annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
-        const { title, content, category, attachment, members } = annotation;
+    async create(annotation: CreateAnnotationDTO, file: Express.Multer.File, user: TokenPayloadSchema) {
+        const { title, content, category, members } = annotation;
 
         const { sub: userId } = user;
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
@@ -32,11 +33,11 @@ export class AnnotationService {
                 throw new ConflictException("Não é permitido membros duplicados.");
             }
         }
-        let uploadedFileUrl: string | null = null;
+        let uploadedFileUrl;
 
-        if (attachment) {
-            const result = await this.uploadService.upload(attachment);
-            uploadedFileUrl = result?.url || null;
+        if (file) {
+            const result = await this.uploadService.upload(file);
+            uploadedFileUrl = result || null;
         }
 
         const annotationToCreate = {
@@ -55,11 +56,11 @@ export class AnnotationService {
         return annotationToCreate;
     }
 
-    async createByGroup(annotation: CreateAnnotationDTO, groupId: string, user: TokenPayloadSchema) {
+    async createByGroup(annotation: CreateAnnotationDTO, groupId: string, file: Express.Multer.File, user: TokenPayloadSchema) {
         const { title, content, category, attachment, members } = annotation;
 
         const { sub: userId } = user;
-        const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
+        const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId, groupId });
 
         if (existingAnnotation) {
             throw new ConflictException("Essa anotacao já existe");
@@ -75,11 +76,11 @@ export class AnnotationService {
             }
         }
 
-        let uploadedFileUrl: string | null = null;
+        let uploadedFileUrl;
 
         if (attachment) {
-            const result = await this.uploadService.upload(attachment);
-            uploadedFileUrl = result?.url || null;
+            const result = await this.uploadService.upload(file);
+            uploadedFileUrl = result || [];
         }
 
         const annotationToCreate = {
@@ -172,8 +173,8 @@ export class AnnotationService {
         return annotations;
     }
 
-    async update(annotationId: string, annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
-        const { title, content, category, attachment } = annotation;
+    async update(annotationId: string, annotation: UpdateAnnotationDTO, file: Express.Multer.File, user: TokenPayloadSchema) {
+        const { title, content, category } = annotation;
         const { sub: userId } = user;
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);
@@ -189,6 +190,14 @@ export class AnnotationService {
         if (title) annotationToUpdate.title = title;
         if (category) annotationToUpdate.category = category;
         if (content) annotationToUpdate.content = content;
+        if (file) {
+            const newAttachment = await this.uploadService.upload(file);
+
+            annotationToUpdate.attachment = [
+                ...(existingAnnotation.attachment || []),
+                newAttachment,
+            ];
+        }
 
         const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
             annotationId,
@@ -200,7 +209,7 @@ export class AnnotationService {
 
     }
 
-    async updateByGroup(annotationId: string, groupId: string, annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
+    async updateByGroup(annotationId: string, groupId: string, annotation: UpdateAnnotationDTO, file: Express.Multer.File, user: TokenPayloadSchema) {
         const { title, content, category, attachment } = annotation;
         const { sub: userId } = user;
 
@@ -208,7 +217,7 @@ export class AnnotationService {
 
         if (!existingAnnotation) throw new ConflictException("Essa anotacao não existe");
 
-        const existingAnnotationName = await this.annotationModel.findOne({ title, category, createdUserId: userId });
+        const existingAnnotationName = await this.annotationModel.findOne({ title, category, createdUserId: userId, groupId });
 
         if (existingAnnotationName) throw new ConflictException("Ja existe uma anotacao com esse nome");
 
@@ -217,6 +226,14 @@ export class AnnotationService {
         if (title) annotationToUpdate.title = title;
         if (category) annotationToUpdate.category = category;
         if (content) annotationToUpdate.content = content;
+        if (file) {
+            const newAttachment = await this.uploadService.upload(file);
+
+            annotationToUpdate.attachment = [
+                ...(existingAnnotation.attachment || []),
+                newAttachment,
+            ];
+        }
 
         const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
             annotationId,
@@ -228,7 +245,7 @@ export class AnnotationService {
 
     }
 
-    async addMember(annotationId: string, annotation: CreateAnnotationDTO, user: TokenPayloadSchema) {
+    async addMember(annotationId: string, annotation: UpdateAnnotationDTO, user: TokenPayloadSchema) {
         const { members = [] } = annotation;
         const userId = user.sub;
 
@@ -395,20 +412,34 @@ export class AnnotationService {
 
     }
 
-    async deleteAnnotation(annotationId: string, user: TokenPayloadSchema) {
-        const { sub: userId } = user;
-
+    async deleteAnnotation(annotationId: string) {
         const annotation = await this.annotationModel.findById(annotationId).exec();
 
         if (!annotation) throw new NotFoundException("Annotation não encontrada");
 
-
-        if (annotation.createdUserId.toString() !== userId) throw new ForbiddenException("Você não tem permissão para excluir esta annotation");
-
-
         await this.annotationModel.findByIdAndDelete(annotationId).exec();
 
         return { message: "Anotacao excluída com sucesso" };
+    }
+
+    async deleteAttachment(annotationId: string, attachmentName: string) {
+        const annotation = await this.annotationModel.findById(annotationId).exec();
+
+        if (!annotation) throw new NotFoundException("Anotação não encontrada");
+
+
+        const attachments = annotation.attachment as AttachmentDTO[];
+
+        const found = attachments.find(att => att.url === attachmentName);
+        if (!found) {
+            throw new NotFoundException("Anexo não encontrado");
+        }
+
+        const newAttachment = attachments.filter(attachment => attachment.url !== attachmentName)
+        this.uploadService.delete(attachmentName)
+        await this.annotationModel.findByIdAndUpdate(annotationId, { attachment: newAttachment }, { new: true })
+
+        return { message: "Anexo excluído com sucesso" };
     }
 
     async deleteAnnotationByGroup(annotationId: string, groupId: string) {

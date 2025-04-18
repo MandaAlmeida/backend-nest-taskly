@@ -41,7 +41,6 @@ export class RoleGuard implements CanActivate {
             : false;
 
 
-        console.log(annotationId, groupId, hasAnnotationPermission, hasGroupPermission, user)
         if (annotationId && groupId && hasAnnotationPermission && hasGroupPermission) {
             return true;
         }

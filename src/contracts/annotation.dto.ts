@@ -9,6 +9,7 @@ import {
 import { MemberDTO } from "./member.dto";
 import { ApiProperty } from "@nestjs/swagger";
 import { UploadDTO } from "./upload.dto";
+import { AttachmentDTO } from "./attachment.dto";
 
 export class CreateAnnotationDTO {
     @IsNotEmpty({ message: "Titulo é obrigatório" })
@@ -50,9 +51,10 @@ export class CreateAnnotationDTO {
     })
     members?: MemberDTO[];
 
-    @ApiProperty({ type: 'string', format: 'binary', required: false })
+    @ApiProperty({ type: AttachmentDTO, required: false })
     @IsOptional()
-    attachment?: Express.Multer.File;
+    @IsArray()
+    attachment?: AttachmentDTO[];
 
     @IsOptional()
     @IsArray()
@@ -67,7 +69,7 @@ export class UpdateAnnotationDTO {
         description: "Titulo da anotacao",
         example: "Estudo sobre Nest"
     })
-    title: string;
+    title?: string;
 
     @IsOptional()
     @IsString()
@@ -75,7 +77,7 @@ export class UpdateAnnotationDTO {
         description: "Conteudo da anotacao",
         example: "NestJS é um framework para construção de aplicações Node.js escaláveis e de fácil manutenção. Ele utiliza TypeScript por padrão e é fortemente inspirado na arquitetura do Angular, com uso de decorators, injeção de dependência e módulos, tornando o código mais organizado e testável. É ideal para criar APIs robustas, sendo compatível com bibliotecas populares como TypeORM, Mongoose, Passport, entre outras."
     })
-    content: string;
+    content?: string;
 
     @IsOptional()
     @IsString()
@@ -83,7 +85,7 @@ export class UpdateAnnotationDTO {
         description: "Categoria onde a anotacao se encontra",
         example: "Estudo"
     })
-    category: string;
+    category?: string;
 
     @IsOptional()
     @IsArray()
@@ -100,9 +102,10 @@ export class UpdateAnnotationDTO {
     })
     members?: MemberDTO[];
 
-    @ApiProperty({ type: 'string', format: 'binary', required: false })
+    @ApiProperty({ type: AttachmentDTO, required: false })
     @IsOptional()
-    attachment?: Express.Multer.File;
+    @IsArray()
+    attachment?: AttachmentDTO[];
 
     @IsOptional()
     @IsArray()

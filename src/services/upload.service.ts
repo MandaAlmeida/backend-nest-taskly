@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { EnvService } from "@/env/env.service";
@@ -25,7 +25,7 @@ export class UploadService {
         })
     }
 
-    async upload(file: UploadDTO): Promise<{ url: string; }> {
+    async upload(file: UploadDTO) {
         const uploadId = randomUUID()
         const uniqueFileName = `${uploadId}-${file.originalname}`
 
@@ -41,10 +41,22 @@ export class UploadService {
 
         await upload.done();
 
-        console.log(file)
+        console.log(file.originalname)
 
         return {
-            url: uniqueFileName,
+            title: file.originalname,
+            url: uniqueFileName
         }
+
     }
+
+    async delete(file: string): Promise<{ success: boolean }> {
+        const command = new DeleteObjectCommand({
+            Bucket: this.envService.get("AWS_BUCKET_NAME"),
+            Key: file,
+        })
+        await this.client.send(command);
+        return { success: true };
+    }
+
 }
