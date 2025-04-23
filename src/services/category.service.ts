@@ -37,6 +37,10 @@ export class CategorysService {
         return await this.categoryModel.find({ userId }).exec();
     }
 
+    async fetchById(categoryId: string) {
+        return await this.categoryModel.findById(categoryId).exec();
+    }
+
     async update(categoryId: string, updateCategory: CreateCategoryDTO, user: TokenPayloadSchema) {
         const { sub: userId } = user
         const { category, color, icon } = updateCategory

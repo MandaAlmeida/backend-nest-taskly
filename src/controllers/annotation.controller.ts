@@ -58,6 +58,11 @@ export class AnnotationController {
         return this.AnnotationService.fetchByPage(user, page);
     }
 
+    @Get("fetchAttachment")
+    async fetchAttachment(@Query("attachment") fileName: string) {
+        return this.AnnotationService.fetchAttachment(fileName);
+    }
+
     @Get("search")
     async fetchByFilter(@Query("q") query: string, @CurrentUser() user: TokenPayloadSchema) {
         return this.AnnotationService.fetchBySearch(query, user);

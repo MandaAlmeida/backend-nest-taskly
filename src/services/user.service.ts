@@ -9,7 +9,7 @@ import { compare, hash } from 'bcryptjs';
 import { Task, TaskDocument } from "@/models/tasks.schema";
 import { SubCategory, SubCategoryDocument } from "@/models/subCategory.schema";
 import { TokenPayloadSchema } from "@/auth/jwt.strategy";
-
+import { UploadService } from "./upload.service";
 
 
 @Injectable()
@@ -20,10 +20,11 @@ export class UserService {
         @InjectModel(Task.name) private taskModel: Model<TaskDocument>,
         @InjectModel(SubCategory.name) private subCategoriesModel: Model<SubCategoryDocument>,
         private jwt: JwtService,
+        private uploadService: UploadService
     ) { }
 
-    async create(user: CreateUserDTO) {
-        const { name, email, password, passwordConfirm } = user
+    async create(user: CreateUserDTO, file: Express.Multer.File) {
+        const { name, email, birth, password, passwordConfirm, } = user
 
         if (passwordConfirm !== password) {
             throw new BadRequestException("As senhas precisam ser iguais");
@@ -37,10 +38,19 @@ export class UserService {
 
         const hashedPassword = await hash(password, 8);
 
+        let uploadedFileUrl;
+
+        if (file) {
+            const result = await this.uploadService.upload(file);
+            uploadedFileUrl = result;
+        }
+
         const newUser = {
             name,
             email,
             password: hashedPassword,
+            birth,
+            imageUser: uploadedFileUrl.url,
         };
 
         const createdUser = new this.userModel(newUser);

@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
     IsNotEmpty,
+    IsNumber,
     IsOptional,
     IsString,
 } from "class-validator";
@@ -15,12 +16,12 @@ export class CreateCategoryDTO {
     category: string;
 
     @IsNotEmpty({ message: "Icone é obrigatória" })
-    @IsString()
+    @IsNumber()
     @ApiProperty({
         description: "Icone da categoria",
         example: "GraduationCap"
     })
-    icon: string;
+    icon: number;
 
     @IsNotEmpty({ message: "Cor é obrigatória" })
     @IsString()
@@ -42,12 +43,12 @@ export class UpdateCategoryDTO {
     category: string;
 
     @IsOptional()
-    @IsString()
+    @IsNumber()
     @ApiProperty({
         description: "Icone da categoria",
         example: "GraduationCap"
     })
-    icon: string;
+    icon: number;
 
     @IsOptional()
     @IsString()

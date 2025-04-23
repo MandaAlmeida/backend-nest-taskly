@@ -37,7 +37,7 @@ export class AnnotationService {
 
         if (file) {
             const result = await this.uploadService.upload(file);
-            uploadedFileUrl = result || null;
+            uploadedFileUrl = result;
         }
 
         const annotationToCreate = {
@@ -124,9 +124,7 @@ export class AnnotationService {
     }
 
     async fetchById(annotationId: string) {
-        const Annotations = await this.annotationModel.findById(annotationId).sort({ date: 1 }).exec();
-
-        return Annotations
+        return await this.annotationModel.findById(annotationId).exec();
     }
 
     async fetchByPage(user: TokenPayloadSchema, page: number) {
@@ -171,6 +169,11 @@ export class AnnotationService {
         });
 
         return annotations;
+    }
+
+    async fetchAttachment(fileName: string) {
+        const result = await this.uploadService.getFile(fileName);
+        return result
     }
 
     async update(annotationId: string, annotation: UpdateAnnotationDTO, file: Express.Multer.File, user: TokenPayloadSchema) {

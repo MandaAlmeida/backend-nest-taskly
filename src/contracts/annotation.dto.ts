@@ -8,7 +8,6 @@ import {
 } from "class-validator";
 import { MemberDTO } from "./member.dto";
 import { ApiProperty } from "@nestjs/swagger";
-import { UploadDTO } from "./upload.dto";
 import { AttachmentDTO } from "./attachment.dto";
 
 export class CreateAnnotationDTO {
@@ -54,7 +53,7 @@ export class CreateAnnotationDTO {
     @ApiProperty({ type: AttachmentDTO, required: false })
     @IsOptional()
     @IsArray()
-    attachment?: AttachmentDTO[];
+    attachment?: Express.Multer.File;
 
     @IsOptional()
     @IsArray()

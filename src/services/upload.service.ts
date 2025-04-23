@@ -1,9 +1,10 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { EnvService } from "@/env/env.service";
 import { UploadDTO } from "@/contracts/upload.dto";
 import { Upload } from "@aws-sdk/lib-storage";
+
 
 @Injectable()
 export class UploadService {
@@ -25,6 +26,15 @@ export class UploadService {
         })
     }
 
+    async getFile(fileName: string) {
+        const url = this.envService.get("URL_PUBLIC_GET_IMAGE")
+
+        const fileURL = `${url}${fileName}`
+
+        return fileURL
+    }
+
+
     async upload(file: UploadDTO) {
         const uploadId = randomUUID()
         const uniqueFileName = `${uploadId}-${file.originalname}`
@@ -40,8 +50,6 @@ export class UploadService {
         });
 
         await upload.done();
-
-        console.log(file.originalname)
 
         return {
             title: file.originalname,

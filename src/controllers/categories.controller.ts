@@ -25,6 +25,11 @@ export class CategoriesController {
         return this.CategoriesService.fetch(user);
     }
 
+    @Get("fetchById/:categoryId")
+    async fetchById(@Param("categoryId") categoryId: string) {
+        return this.CategoriesService.fetchById(categoryId);
+    }
+
     @Put("update/:id")
     async update(@Param('id') categoryId: string, @Body() category: UpdateCategoryDTO, @CurrentUser() user: TokenPayloadSchema) {
         return this.CategoriesService.update(categoryId, category, user)

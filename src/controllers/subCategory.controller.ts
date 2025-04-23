@@ -20,9 +20,19 @@ export class SubCategoryController {
         return this.SubCategoryService.create(subCategory, user);
     }
 
+    @Get("fetch")
+    async fetch(@CurrentUser() user: TokenPayloadSchema) {
+        return this.SubCategoryService.fetch(user);
+    }
+
     @Get("fetch/:id")
-    async fetch(@Param('id') categoryId: string, @CurrentUser() user: TokenPayloadSchema) {
-        return this.SubCategoryService.fetch(categoryId, user);
+    async fetchByIdCategory(@Param('id') categoryId: string, @CurrentUser() user: TokenPayloadSchema) {
+        return this.SubCategoryService.fetchByIdCategory(categoryId, user);
+    }
+
+    @Get("fetchById/:subCategoryId")
+    async fetchById(@Param("subCategoryId") subCategoryId: string) {
+        return this.SubCategoryService.fetchById(subCategoryId);
     }
 
     @Put("update/:id")

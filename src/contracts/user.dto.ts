@@ -7,6 +7,7 @@ import {
     IsString,
     IsStrongPassword,
 } from "class-validator";
+import { AttachmentDTO } from "./attachment.dto";
 
 export class CreateUserDTO {
     @IsNotEmpty({ message: "O nome é obrigatório." })
@@ -24,6 +25,23 @@ export class CreateUserDTO {
         example: "diegomartins16@gmail.com"
     })
     email: string;
+
+    @IsNotEmpty({ message: "A data de nascimento é obrigatório." })
+    @IsString()
+    @ApiProperty({
+        description: "Data de nascimento",
+        example: "17/04/2000"
+    })
+    birth: string;
+
+    @ApiProperty({
+        type: 'string',
+        format: 'binary',
+        required: false,
+        description: "Arquivo do usuário (upload)",
+    })
+    @IsOptional()
+    file?: string;
 
     @IsNotEmpty({ message: "A senha é obrigatória." })
     @IsStrongPassword(
@@ -88,6 +106,14 @@ export class UpdateUserDTO {
         example: "diegomartins16@gmail.com"
     })
     email: string;
+
+    @IsOptional()
+    @IsString()
+    @ApiProperty({
+        description: "Data de nascimento",
+        example: "17/04/2000"
+    })
+    birth: string;
 
     @IsOptional()
     @IsStrongPassword(

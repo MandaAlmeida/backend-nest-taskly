@@ -19,13 +19,13 @@ export class User {
     email: string;
 
     @Prop({ required: true })
+    birth: string;
+
+    @Prop({ required: true })
+    imageUser: string;
+
+    @Prop({ required: true })
     password: string;
-
-    @Prop({ type: Array, ref: 'Group', default: [] })
-    groups: [];
-
-    @Prop({ type: Array, ref: 'Annotation', default: [] })
-    sharedAnnotations: [];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

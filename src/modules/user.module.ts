@@ -6,13 +6,15 @@ import { User, UserSchema } from '@/models/user.schema';
 import { CategoriesModule } from './categories.module';
 import { TaskModule } from './task.module';
 import { SubCategoryModule } from './subCategories.module';
+import { UploadModule } from './upload.module';
 
 @Module({
     imports: [
         MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
         CategoriesModule,
         TaskModule,
-        SubCategoryModule
+        SubCategoryModule,
+        UploadModule
     ],
     controllers: [UserController],
     providers: [

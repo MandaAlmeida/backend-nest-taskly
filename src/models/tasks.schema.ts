@@ -20,6 +20,9 @@ export class Task {
     category: string;
 
     @Prop({ required: true })
+    subCategory: string;
+
+    @Prop({ required: true })
     priority: string;
 
     @Prop({ required: true })

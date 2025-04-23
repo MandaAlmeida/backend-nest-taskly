@@ -5,6 +5,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Task, TaskDocument } from "@/models/tasks.schema";
 import { Model } from "mongoose";
 import { Status } from "@/enum/status.enum";
+import { SubCategory } from "@/models/subCategory.schema";
 
 @Injectable()
 export class TaskService {
@@ -13,7 +14,7 @@ export class TaskService {
     ) { }
 
     async create(task: CreateTaskDTO, user: TokenPayloadSchema): Promise<CreateTaskDTO> {
-        const { name, category, priority, date } = task;
+        const { name, category, subCategory, priority, date } = task;
 
         const { sub: userId } = user;
         const existingTask = await this.taskModel.findOne({ name, category, date, userId });
@@ -22,7 +23,6 @@ export class TaskService {
             throw new ConflictException("Essa task já existe");
         }
 
-        // Calcula a data de hoje no formato yyyy-mm-dd
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
         const taskDateStr = new Date(date).toISOString().split('T')[0];
@@ -40,6 +40,7 @@ export class TaskService {
         const taskToCreate = {
             name,
             category,
+            subCategory,
             priority,
             date,
             userId,
@@ -55,6 +56,10 @@ export class TaskService {
     async fetch(user: TokenPayloadSchema): Promise<CreateTaskDTO[]> {
         const { sub: userId } = user;
         return await this.taskModel.find({ userId }).sort({ date: 1 }).exec();
+    }
+
+    async fetchById(taskId: string) {
+        return await this.taskModel.findById(taskId).exec();
     }
 
     async fetchByPage(user: TokenPayloadSchema, page: number): Promise<CreateTaskDTO[]> {

@@ -32,8 +32,6 @@ export class SubCategoryService {
             userId
         });
 
-        console.log(existingSubCategory)
-
         if (existingSubCategory) {
             throw new ConflictException("Essa sub categoria já existe para essa categoria");
         }
@@ -43,10 +41,16 @@ export class SubCategoryService {
         const createdCategories = new this.subCategoryModel(Category);
         await createdCategories.save();
         return createdCategories;
-
     }
 
-    async fetch(categoryId: string, user: TokenPayloadSchema) {
+    async fetch(user: TokenPayloadSchema) {
+        const { sub: userId } = user;
+        const subCategory = await this.subCategoryModel.find({ userId }).exec();
+
+        return subCategory
+    }
+
+    async fetchByIdCategory(categoryId: string, user: TokenPayloadSchema) {
         const { sub: userId } = user;
         const subCategory = await this.subCategoryModel.find({
             userId,
@@ -54,6 +58,10 @@ export class SubCategoryService {
         }).exec();
 
         return subCategory
+    }
+
+    async fetchById(subCategoryId: string) {
+        return await this.subCategoryModel.findById(subCategoryId).exec();
     }
 
     async update(subCategoryId: string, updateData: UpdateSubCategoryDTO, user: TokenPayloadSchema) {

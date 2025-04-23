@@ -26,6 +26,14 @@ export class CreateTaskDTO {
     })
     category: string;
 
+    @IsNotEmpty({ message: "Sub Categoria é obrigatória" })
+    @IsString()
+    @ApiProperty({
+        description: "Nome da sub-categoria onde a tarefa sera alocada",
+        example: "Cursinho"
+    })
+    subCategory: string;
+
     @IsNotEmpty({ message: "Prioridade é obrigatória" })
     @IsString()
     @ApiProperty({
@@ -60,6 +68,14 @@ export class UpdateTaskDTO {
         example: "Estudo"
     })
     category?: string;
+
+    @IsOptional()
+    @IsString()
+    @ApiProperty({
+        description: "Nome da sub-categoria onde a tarefa sera alocada",
+        example: "Cursinho"
+    })
+    subCategory?: string;
 
     @IsOptional()
     @IsString()
