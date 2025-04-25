@@ -5,7 +5,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Task, TaskDocument } from "@/models/tasks.schema";
 import { Model } from "mongoose";
 import { Status } from "@/enum/status.enum";
-import { SubCategory } from "@/models/subCategory.schema";
+import { SubTask } from "@/models/subTask";
 
 @Injectable()
 export class TaskService {
@@ -14,14 +14,11 @@ export class TaskService {
     ) { }
 
     async create(task: CreateTaskDTO, user: TokenPayloadSchema): Promise<CreateTaskDTO> {
-        const { name, category, subCategory, priority, date } = task;
-
+        const { name, category, subCategory, subTask, priority, date } = task;
         const { sub: userId } = user;
         const existingTask = await this.taskModel.findOne({ name, category, date, userId });
 
-        if (existingTask) {
-            throw new ConflictException("Essa task já existe");
-        }
+        if (existingTask) throw new ConflictException("Essa task já existe");
 
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
@@ -44,7 +41,8 @@ export class TaskService {
             priority,
             date,
             userId,
-            status
+            status,
+            subTask
         };
 
         const createdTask = new this.taskModel(taskToCreate);
@@ -66,7 +64,8 @@ export class TaskService {
         const { sub: userId } = user;
 
         const limit = 20;
-        const skip = (page - 1) * limit;
+        const currentPage = page
+        const skip = (currentPage - 1) * limit;
         return await this.taskModel.find({ userId }).sort({ date: 1 }).skip(skip).limit(limit).exec();
     }
 
@@ -101,34 +100,56 @@ export class TaskService {
         return tasks;
     }
 
-    async update(taskId: string, task: UpdateTaskDTO, user: TokenPayloadSchema) {
-        const { name, category, priority, date, status } = task;
-        const { sub: userId } = user;
+    async update(taskId: string, task: UpdateTaskDTO) {
+        const { name, category, priority, date, status, subCategory, subTask } = task;
 
         const existingTask = await this.taskModel.findById(taskId);
-        if (!existingTask) {
-            throw new ConflictException("Essa task não existe");
-        }
-        if (existingTask.userId !== userId) {
-            throw new ConflictException("Voce nao tem acesso a essa tarefa");
-        }
 
-        const existingTaskName = await this.taskModel.findOne({ name, category, date, userId });
+        if (!existingTask) throw new ConflictException("Essa task não existe");
 
-        if (existingTaskName?._id.toString() !== taskId) {
-            throw new ConflictException("Ja existe uma subcategoria com esse nome");
-        }
+        console.log(existingTask.name === name, existingTask.category === category, existingTask.date === date)
+
+        const existingTaskName = await this.taskModel.findOne({ name: name, category: category, date: date, userId: existingTask.userId });
+
+        if (existingTaskName !== null && existingTaskName?._id.toString() !== taskId) throw new ConflictException("Ja existe uma tarefa com esse nome");
 
         const taskToUpdate: any = {};
-
         if (name) taskToUpdate.name = name;
         if (category) taskToUpdate.category = category;
         if (priority) taskToUpdate.priority = priority;
+        if (date) taskToUpdate.date = date;
+        if (subCategory) taskToUpdate.subCategory = subCategory;
+        if (subTask) {
+            const updatedSubTasks = existingTask.subTask ?? [];
+
+            const finalSubTasks = subTask.map(newSub => {
+                if (!newSub._id) {
+                    const alreadyExists = updatedSubTasks.find(st => st.task === newSub.task);
+                    if (alreadyExists) throw new ConflictException("Essa sub Tarefa já existe");
+
+                    return {
+                        task: newSub.task,
+                        status: newSub.status
+                    }; // nova subTask (sem _id)
+                } else {
+                    const existingSub = updatedSubTasks.find(st => st._id?.toString() === newSub._id);
+                    if (!existingSub) throw new ConflictException("Subtarefa não encontrada");
+
+                    return {
+                        _id: existingSub._id,
+                        task: newSub.task,
+                        status: newSub.status
+                    };
+                }
+            });
+
+            taskToUpdate.subTask = finalSubTasks;
+        }
 
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
 
-        if (status !== 'COMPLETED') {
+        if (status !== undefined && status !== 'COMPLETED') {
             taskToUpdate.status = 'COMPLETED';
         } else {
             const taskDateStr = new Date(date || existingTask.date).toISOString().split('T')[0];
@@ -140,10 +161,6 @@ export class TaskService {
             } else {
                 taskToUpdate.status = 'FUTURE';
             }
-        }
-
-        if (date) {
-            taskToUpdate.date = date;
         }
 
         const updatedTask = await this.taskModel.findByIdAndUpdate(
@@ -190,6 +207,22 @@ export class TaskService {
         }
 
         return { message: 'Statuses updated successfully' };
+    }
+
+    async deleteSubTask(taskId: string, subTask: string) {
+        const task = await this.taskModel.findById(taskId).exec();
+
+        if (!task) {
+            throw new NotFoundException("Tarefa não encontrada");
+        }
+
+        if (task.subTask) {
+            const newSubTask = task.subTask.filter(task => task._id.toString() !== subTask)
+
+            await this.taskModel.findByIdAndUpdate(taskId, { subTask: newSubTask }, { new: true }).exec()
+        }
+
+        return { message: "Sub tarefa excluída com sucesso" };
     }
 
     async delete(taskId: string, user: TokenPayloadSchema) {

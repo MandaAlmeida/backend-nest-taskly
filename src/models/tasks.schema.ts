@@ -1,6 +1,7 @@
 import { Status } from '@/enum/status.enum';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document, ObjectId } from 'mongoose';
+import { SubTask } from './subTask';
 
 export type TaskDocument = Task;
 
@@ -21,6 +22,9 @@ export class Task {
 
     @Prop({ required: true })
     subCategory: string;
+
+    @Prop({ type: [SubTask], default: [] })
+    subTask: SubTask[];
 
     @Prop({ required: true })
     priority: string;
