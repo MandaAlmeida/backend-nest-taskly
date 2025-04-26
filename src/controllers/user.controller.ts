@@ -31,8 +31,13 @@ export class UserController {
     @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
     @Get("fetch")
-    async fetch(@CurrentUser() user: TokenPayloadSchema) {
-        return this.UserService.fetch(user)
+    async fetchByToken(@CurrentUser() user: TokenPayloadSchema) {
+        return this.UserService.fetchByToken(user)
+    }
+
+    @Get("fetch/:id")
+    async fetchById(@Param("id") userId: string) {
+        return this.UserService.fetchById(userId)
     }
 
     @ApiBearerAuth('access-token')

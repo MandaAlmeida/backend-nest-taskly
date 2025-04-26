@@ -7,9 +7,16 @@ import {
     IsString,
     IsStrongPassword,
 } from "class-validator";
-import { AttachmentDTO } from "./attachment.dto";
 
 export class CreateUserDTO {
+    @IsNotEmpty({ message: "O nome de usuario é obrigatório." })
+    @IsString()
+    @ApiProperty({
+        description: "Nome de usuario",
+        example: "Diego20"
+    })
+    nameUser: string;
+
     @IsNotEmpty({ message: "O nome é obrigatório." })
     @IsString()
     @ApiProperty({
@@ -69,7 +76,7 @@ export class CreateUserDTO {
         description: "Confirmar senha quando cria o usuario",
         example: "DiegoM13#"
     })
-    passwordConfirm: string;
+    passwordConfirmation: string;
 }
 
 export class LoginUserDTO {
@@ -91,6 +98,14 @@ export class LoginUserDTO {
 }
 
 export class UpdateUserDTO {
+    @IsOptional()
+    @IsString()
+    @ApiProperty({
+        description: "Nome de usuario",
+        example: "Diego20"
+    })
+    nameUser: string;
+
     @IsOptional()
     @IsString()
     @ApiProperty({
@@ -141,5 +156,5 @@ export class UpdateUserDTO {
         description: "Confirmar senha quando cria o usuario",
         example: "DiegoM13#"
     })
-    passwordConfirm: string;
+    passwordConfirmation: string;
 }

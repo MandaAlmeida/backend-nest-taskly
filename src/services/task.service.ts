@@ -107,7 +107,7 @@ export class TaskService {
 
         if (!existingTask) throw new ConflictException("Essa task não existe");
 
-        console.log(existingTask.name === name, existingTask.category === category, existingTask.date === date)
+
 
         const existingTaskName = await this.taskModel.findOne({ name: name, category: category, date: date, userId: existingTask.userId });
 

@@ -24,9 +24,9 @@ export class UserService {
     ) { }
 
     async create(user: CreateUserDTO, file: Express.Multer.File) {
-        const { name, email, birth, password, passwordConfirm, } = user
+        const { name, email, birth, password, passwordConfirmation } = user
 
-        if (passwordConfirm !== password) {
+        if (passwordConfirmation !== password) {
             throw new BadRequestException("As senhas precisam ser iguais");
         }
 
@@ -37,38 +37,40 @@ export class UserService {
         }
 
         const hashedPassword = await hash(password, 8);
+        console.log(user, file)
 
-        let uploadedFileUrl;
+        // let uploadedFileUrl;
 
-        if (file) {
-            const result = await this.uploadService.upload(file);
-            uploadedFileUrl = result;
-        }
+        // if (file) {
+        //     const result = await this.uploadService.upload(file);
+        //     uploadedFileUrl = result;
+        // }
 
-        const newUser = {
-            name,
-            email,
-            password: hashedPassword,
-            birth,
-            imageUser: uploadedFileUrl.url,
-        };
 
-        const createdUser = new this.userModel(newUser);
+        // const newUser = {
+        //     name,
+        //     email,
+        //     password: hashedPassword,
+        //     birth,
+        //     imageUser: uploadedFileUrl?.url ?? null,
+        // };
 
-        // Após criar o usuário, você cria as categorias padrão para o usuário
-        const defaultCategories = [{ category: "Todas", icon: "CalendarCheck", color: "#4A88C5" }, { category: "Pessoal", icon: "UserRound", color: "#34A853" }, { category: "Estudo", icon: "GraduationCap", color: "#FBBC05" }, { category: "Trabalho", icon: "BriefcaseBusiness", color: "#FF3B30" }];
-        const categories = defaultCategories.map(category => ({
-            category: category.category,
-            icon: category.icon,
-            color: category.color,
-            userId: createdUser._id,
-        }));
+        // const createdUser = new this.userModel(newUser);
 
-        // Crie as categorias no banco de dados
-        await this.categoriesModel.insertMany(categories);
-        await createdUser.save();
+        // // Após criar o usuário, você cria as categorias padrão para o usuário
+        // const defaultCategories = [{ category: "Todas", icon: "CalendarCheck", color: "#4A88C5" }, { category: "Pessoal", icon: "UserRound", color: "#34A853" }, { category: "Estudo", icon: "GraduationCap", color: "#FBBC05" }, { category: "Trabalho", icon: "BriefcaseBusiness", color: "#FF3B30" }];
+        // const categories = defaultCategories.map(category => ({
+        //     category: category.category,
+        //     icon: category.icon,
+        //     color: category.color,
+        //     userId: createdUser._id,
+        // }));
 
-        return createdUser;
+        // // Crie as categorias no banco de dados
+        // await this.categoriesModel.insertMany(categories);
+        // await createdUser.save();
+
+        // return createdUser;
     }
 
     async login(user: LoginUserDTO): Promise<{ token: string }> {
@@ -92,7 +94,7 @@ export class UserService {
 
     }
 
-    async fetch(user: TokenPayloadSchema) {
+    async fetchByToken(user: TokenPayloadSchema) {
         const userId = user.sub;
 
         const userFound = await this.userModel
@@ -107,8 +109,21 @@ export class UserService {
         return userFound;
     }
 
+    async fetchById(userId: string) {
+        const userFound = await this.userModel
+            .findById(userId)
+            .select(['-password', '-email', '-imageUser', '-name', '-birth'])
+            .exec();
+
+        if (!userFound) {
+            throw new NotFoundException("Usuário não encontrado");
+        }
+
+        return userFound;
+    }
+
     async update(updateData: UpdateUserDTO, user: TokenPayloadSchema) {
-        const { name, email, password, passwordConfirm } = updateData
+        const { name, email, password, passwordConfirmation } = updateData
         const userId = user.sub;
 
         if (!userId) {
@@ -121,7 +136,7 @@ export class UserService {
             throw new ConflictException('Este usuário já existe');
         }
 
-        if (password !== passwordConfirm) {
+        if (password !== passwordConfirmation) {
             throw new BadRequestException("As senhas precisam ser iguais");
         }
 
