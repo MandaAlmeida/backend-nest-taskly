@@ -16,8 +16,11 @@ export class Annotation {
     @Prop({ required: true })
     title: string;
 
-    @Prop({ required: true })
-    content: string;
+    @Prop({ type: Array, required: false })
+    content: {
+        type: string,
+        value: string
+    }[];
 
     @Prop({ required: true })
     category: string

@@ -107,8 +107,6 @@ export class SubCategoryService {
         return updatedSubCategory;
     }
 
-
-
     async delete(subCategoryId: string, user: TokenPayloadSchema) {
         const { sub: userId } = user;
 

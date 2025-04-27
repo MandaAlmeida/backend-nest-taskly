@@ -1,4 +1,4 @@
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
     IsArray,
     IsNotEmpty,
@@ -9,6 +9,7 @@ import {
 import { MemberDTO } from "./member.dto";
 import { ApiProperty } from "@nestjs/swagger";
 import { AttachmentDTO } from "./attachment.dto";
+import { ContentDTO } from "./content.dto";
 
 export class CreateAnnotationDTO {
     @IsNotEmpty({ message: "Titulo é obrigatório" })
@@ -19,13 +20,26 @@ export class CreateAnnotationDTO {
     })
     title: string;
 
-    @IsNotEmpty({ message: "Conteudo é obrigatório" })
-    @IsString()
+
+    @Transform(({ value }) => {
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch (error) {
+                throw new Error('Invalid JSON string for content');
+            }
+        }
+        return value;
+    }, { toClassOnly: true })
+    @IsArray()
     @ApiProperty({
-        description: "Conteudo da anotacao",
-        example: "NestJS é um framework para construção de aplicações Node.js escaláveis e de fácil manutenção. Ele utiliza TypeScript por padrão e é fortemente inspirado na arquitetura do Angular, com uso de decorators, injeção de dependência e módulos, tornando o código mais organizado e testável. É ideal para criar APIs robustas, sendo compatível com bibliotecas populares como TypeORM, Mongoose, Passport, entre outras."
+        description: 'Conteúdo da anotação',
+        example: [
+            { type: 'text', value: 'Texto da anotação' },
+            { type: 'image', value: 'imagem.jpg' },
+        ],
     })
-    content: string;
+    content: ContentDTO[];
 
     @IsNotEmpty({ message: "Categoria é obrigatória" })
     @IsString()
@@ -37,7 +51,6 @@ export class CreateAnnotationDTO {
 
     @IsOptional()
     @IsArray()
-    @ValidateNested({ each: true })
     @Type(() => MemberDTO)
     @ApiProperty({
         description: "Com quem voce quer compartilhar essa anotacao",
@@ -49,11 +62,6 @@ export class CreateAnnotationDTO {
         ]
     })
     members?: MemberDTO[];
-
-    @ApiProperty({ type: AttachmentDTO, required: false })
-    @IsOptional()
-    @IsArray()
-    attachment?: Express.Multer.File;
 
     @IsOptional()
     @IsArray()
@@ -70,13 +78,17 @@ export class UpdateAnnotationDTO {
     })
     title?: string;
 
-    @IsOptional()
-    @IsString()
+    @ValidateNested({ each: true })
+    @Type(() => ContentDTO)
+    @Transform((value) => ContentDTO)
     @ApiProperty({
-        description: "Conteudo da anotacao",
-        example: "NestJS é um framework para construção de aplicações Node.js escaláveis e de fácil manutenção. Ele utiliza TypeScript por padrão e é fortemente inspirado na arquitetura do Angular, com uso de decorators, injeção de dependência e módulos, tornando o código mais organizado e testável. É ideal para criar APIs robustas, sendo compatível com bibliotecas populares como TypeORM, Mongoose, Passport, entre outras."
+        description: 'Conteúdo da anotação',
+        example: [
+            { type: 'text', value: 'Texto da anotação' },
+            { type: 'image', value: 'imagem.jpg' },
+        ],
     })
-    content?: string;
+    content?: ContentDTO;
 
     @IsOptional()
     @IsString()

@@ -14,11 +14,13 @@ export class AnnotationService {
         private uploadService: UploadService
     ) { }
 
-    async create(annotation: CreateAnnotationDTO, file: Express.Multer.File, user: TokenPayloadSchema) {
+    async create(annotation: CreateAnnotationDTO, user: TokenPayloadSchema, image?: Express.Multer.File) {
         const { title, content, category, members } = annotation;
 
         const { sub: userId } = user;
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
+
+        console.log(annotation)
 
         if (existingAnnotation) {
             throw new ConflictException("Essa anotacao já existe");
@@ -35,16 +37,25 @@ export class AnnotationService {
         }
         let uploadedFileUrl;
 
-        if (file) {
-            const result = await this.uploadService.upload(file);
+        if (image) {
+            const result = await this.uploadService.upload(image);
             uploadedFileUrl = result;
         }
+
+        if (content) {
+            content.forEach((block) => {
+                if (block.type === 'image') {
+                    block.value = uploadedFileUrl;
+                }
+            });
+        }
+
+
 
         const annotationToCreate = {
             title,
             content,
             category,
-            attachment: uploadedFileUrl,
             members,
             createdUserId: userId
         };
@@ -56,11 +67,13 @@ export class AnnotationService {
         return annotationToCreate;
     }
 
-    async createByGroup(annotation: CreateAnnotationDTO, groupId: string, file: Express.Multer.File, user: TokenPayloadSchema) {
-        const { title, content, category, attachment, members } = annotation;
+    async createByGroup(annotation: CreateAnnotationDTO, groupId: string, user: TokenPayloadSchema, file?: Express.Multer.File) {
+        const { title, content, category, members } = annotation;
 
         const { sub: userId } = user;
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId, groupId });
+
+        console.log(annotation)
 
         if (existingAnnotation) {
             throw new ConflictException("Essa anotacao já existe");
@@ -78,7 +91,7 @@ export class AnnotationService {
 
         let uploadedFileUrl;
 
-        if (attachment) {
+        if (file) {
             const result = await this.uploadService.upload(file);
             uploadedFileUrl = result || [];
         }
@@ -87,7 +100,6 @@ export class AnnotationService {
             title,
             content,
             category,
-            attachment: uploadedFileUrl,
             members,
             createdUserId: userId
         };

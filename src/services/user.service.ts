@@ -24,7 +24,7 @@ export class UserService {
     ) { }
 
     async create(user: CreateUserDTO, file: Express.Multer.File) {
-        const { name, email, birth, password, passwordConfirmation } = user
+        const { userName, name, email, birth, password, passwordConfirmation } = user
 
         if (passwordConfirmation !== password) {
             throw new BadRequestException("As senhas precisam ser iguais");
@@ -39,38 +39,39 @@ export class UserService {
         const hashedPassword = await hash(password, 8);
         console.log(user, file)
 
-        // let uploadedFileUrl;
+        let uploadedFileUrl;
 
-        // if (file) {
-        //     const result = await this.uploadService.upload(file);
-        //     uploadedFileUrl = result;
-        // }
+        if (file) {
+            const result = await this.uploadService.upload(file);
+            uploadedFileUrl = result;
+        }
 
 
-        // const newUser = {
-        //     name,
-        //     email,
-        //     password: hashedPassword,
-        //     birth,
-        //     imageUser: uploadedFileUrl?.url ?? null,
-        // };
+        const newUser = {
+            userName,
+            name,
+            email,
+            password: hashedPassword,
+            birth,
+            imageUser: uploadedFileUrl?.url ?? null,
+        };
 
-        // const createdUser = new this.userModel(newUser);
+        const createdUser = new this.userModel(newUser);
 
-        // // Após criar o usuário, você cria as categorias padrão para o usuário
-        // const defaultCategories = [{ category: "Todas", icon: "CalendarCheck", color: "#4A88C5" }, { category: "Pessoal", icon: "UserRound", color: "#34A853" }, { category: "Estudo", icon: "GraduationCap", color: "#FBBC05" }, { category: "Trabalho", icon: "BriefcaseBusiness", color: "#FF3B30" }];
-        // const categories = defaultCategories.map(category => ({
-        //     category: category.category,
-        //     icon: category.icon,
-        //     color: category.color,
-        //     userId: createdUser._id,
-        // }));
+        // Após criar o usuário, você cria as categorias padrão para o usuário
+        const defaultCategories = [{ category: "Todas", icon: 3, color: "#4A88C5" }, { category: "Pessoal", icon: 19, color: "#34A853" }, { category: "Estudo", icon: 10, color: "#FBBC05" }, { category: "Trabalho", icon: 2, color: "#FF3B30" }];
+        const categories = defaultCategories.map(category => ({
+            category: category.category,
+            icon: category.icon,
+            color: category.color,
+            userId: createdUser._id,
+        }));
 
-        // // Crie as categorias no banco de dados
-        // await this.categoriesModel.insertMany(categories);
-        // await createdUser.save();
+        // Crie as categorias no banco de dados
+        await this.categoriesModel.insertMany(categories);
+        await createdUser.save();
 
-        // return createdUser;
+        return createdUser;
     }
 
     async login(user: LoginUserDTO): Promise<{ token: string }> {
@@ -112,7 +113,7 @@ export class UserService {
     async fetchById(userId: string) {
         const userFound = await this.userModel
             .findById(userId)
-            .select(['-password', '-email', '-imageUser', '-name', '-birth'])
+            .select(['userName'])
             .exec();
 
         if (!userFound) {

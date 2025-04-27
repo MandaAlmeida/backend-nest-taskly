@@ -1,6 +1,6 @@
 import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
 import { AnnotationService } from '../services/annotation.service';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors, ValidationPipe } from '@nestjs/common';
 import { CurrentUser } from '@/auth/current-user-decorator';
 import { TokenPayloadSchema } from '@/auth/jwt.strategy';
 import { CreateAnnotationDTO, UpdateAnnotationDTO, } from '@/contracts/annotation.dto';
@@ -8,7 +8,6 @@ import { Roles } from '@/decorator/roles.decorator';
 import { ApiTags, ApiBearerAuth, ApiBody, ApiConsumes, ApiProperty } from '@nestjs/swagger';
 import { RoleGuard } from '@/guards/roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { IsString } from 'class-validator';
 
 @ApiTags('Annotation')
 @Controller("annotation")
@@ -21,12 +20,13 @@ export class AnnotationController {
     ) { }
 
     @Post("create")
-    @UseInterceptors(FileInterceptor('attachment'))
+    @UseInterceptors(FileInterceptor('image'))  // Aqui você usa o 'image' para o arquivo.
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: CreateAnnotationDTO })
-    async create(@UploadedFile() file: Express.Multer.File, @Body() body: CreateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.create(body, file, user);
+    async create(@Body(new ValidationPipe({ transform: true })) body: CreateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFile() image?: Express.Multer.File) {
+        return this.AnnotationService.create(body, user, image);
     }
+
 
 
     @Roles("ADMIN", "EDIT", "DELETE")
@@ -34,8 +34,8 @@ export class AnnotationController {
     @UseInterceptors(FileInterceptor('attachment'))
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: CreateAnnotationDTO })
-    async createByGroup(@UploadedFile() file: Express.Multer.File, @Body() body: CreateAnnotationDTO, @Param("groupId") groupId: string, @CurrentUser() user: TokenPayloadSchema) {
-        return this.AnnotationService.createByGroup(body, groupId, file, user);
+    async createByGroup(@Body() body: CreateAnnotationDTO, @Param("groupId") groupId: string, @CurrentUser() user: TokenPayloadSchema, @UploadedFile() file?: Express.Multer.File) {
+        return this.AnnotationService.createByGroup(body, groupId, user, file);
     }
 
     @Get("fetchByUser")

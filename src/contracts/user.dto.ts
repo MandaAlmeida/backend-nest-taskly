@@ -15,7 +15,7 @@ export class CreateUserDTO {
         description: "Nome de usuario",
         example: "Diego20"
     })
-    nameUser: string;
+    userName: string;
 
     @IsNotEmpty({ message: "O nome é obrigatório." })
     @IsString()
@@ -104,7 +104,7 @@ export class UpdateUserDTO {
         description: "Nome de usuario",
         example: "Diego20"
     })
-    nameUser: string;
+    userName: string;
 
     @IsOptional()
     @IsString()
