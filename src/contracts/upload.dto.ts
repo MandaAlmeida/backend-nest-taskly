@@ -1,5 +1,4 @@
 import { IsString, IsNumber } from 'class-validator';
-import { Readable } from 'stream'; // Importa o tipo de stream
 
 export class UploadDTO {
     @IsString()
@@ -14,8 +13,7 @@ export class UploadDTO {
     @IsString()
     mimetype: string;
 
-    buffer?: Buffer; // Buffer pode ser opcional se for usado stream
-    stream?: Readable; // Usando stream no lugar de buffer
+    buffer?: Buffer;
 
     @IsNumber()
     size: number;

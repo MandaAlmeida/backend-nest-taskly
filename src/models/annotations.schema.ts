@@ -4,7 +4,7 @@ import mongoose, { ObjectId } from 'mongoose';
 
 export type AnnotationDocument = Annotation;
 
-@Schema({ timestamps: true }) // adiciona createdAt e updatedAt automatico
+@Schema({ timestamps: true })
 export class Annotation {
     @Prop({
         required: true,
@@ -16,11 +16,20 @@ export class Annotation {
     @Prop({ required: true })
     title: string;
 
-    @Prop({ type: Array, required: false })
-    content: {
-        type: string,
-        value: string
-    }[];
+    @Prop({
+        type: [
+            {
+                type: { type: String, required: true },
+                value: { type: mongoose.Schema.Types.Mixed, required: true },
+            },
+        ],
+        required: false,
+    })
+    content: Array<{
+        type: string;
+        value: string | { title: string; url: string };
+    }>;
+
 
     @Prop({ required: true })
     category: string
@@ -45,7 +54,7 @@ export class Annotation {
     groupId?: [];
 
     @Prop({ type: Array, ref: 'Attachent', required: false })
-    attachment?: [];
+    attachments?: [];
 }
 
 export const AnnotationSchema = SchemaFactory.createForClass(Annotation);

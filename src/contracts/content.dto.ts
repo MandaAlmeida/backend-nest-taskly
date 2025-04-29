@@ -1,5 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsIn } from "class-validator";
+import { IsString, IsIn, IsOptional, ValidateNested } from "class-validator";
+import { AttachmentDTO } from "./attachment.dto";
+import { Type } from "class-transformer";
 
 export class ContentDTO {
     @ApiProperty({
@@ -10,9 +12,15 @@ export class ContentDTO {
     type: string;
 
     @ApiProperty({
-        description: "Conteúdo a ser adicionado",
-        example: "Texto da anotação",
+        description: "Conteúdo a ser adicionado (pode ser texto ou um anexo)",
+        oneOf: [
+            { type: 'string', example: "Texto da anotação" },
+            { $ref: '#/components/schemas/AttachmentDTO' }
+        ]
     })
-    @IsString()
-    value: string;
+    @IsOptional()
+    @IsString({ message: 'Se for uma string, deve ser um texto válido.' })
+    @ValidateNested({ each: true })
+    @Type(() => AttachmentDTO)
+    value: string | AttachmentDTO;
 }

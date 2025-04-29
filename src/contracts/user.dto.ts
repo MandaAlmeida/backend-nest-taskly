@@ -37,7 +37,7 @@ export class CreateUserDTO {
     @IsString()
     @ApiProperty({
         description: "Data de nascimento",
-        example: "17/04/2000"
+        example: "2000-04-17"
     })
     birth: string;
 

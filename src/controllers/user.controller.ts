@@ -42,16 +42,19 @@ export class UserController {
 
     @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileInterceptor('file'))
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({ type: UpdateUserDTO })
     @Put("update")
-    async update(@Body() updateUser: UpdateUserDTO, @CurrentUser() user: TokenPayloadSchema) {
-        return this.UserService.update(updateUser, user)
+    async update(@Body() updateUser: UpdateUserDTO, @CurrentUser() user: TokenPayloadSchema, file: Express.Multer.File) {
+        return this.UserService.update(updateUser, user, file)
     }
 
     @ApiBearerAuth('access-token')
     @UseGuards(JwtAuthGuard)
-    @Delete("delete/:id")
-    async delete(@Param('id') userId: string) {
-        return this.UserService.delete(userId)
+    @Delete("delete")
+    async delete(@CurrentUser() user: TokenPayloadSchema) {
+        return this.UserService.delete(user)
     }
 
 }

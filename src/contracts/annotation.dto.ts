@@ -10,6 +10,7 @@ import { MemberDTO } from "./member.dto";
 import { ApiProperty } from "@nestjs/swagger";
 import { AttachmentDTO } from "./attachment.dto";
 import { ContentDTO } from "./content.dto";
+import { BadRequestException } from "@nestjs/common";
 
 export class CreateAnnotationDTO {
     @IsNotEmpty({ message: "Titulo é obrigatório" })
@@ -26,7 +27,7 @@ export class CreateAnnotationDTO {
             try {
                 return JSON.parse(value);
             } catch (error) {
-                throw new Error('Invalid JSON string for content');
+                throw new BadRequestException('Formato Json invalido');
             }
         }
         return value;
@@ -64,6 +65,13 @@ export class CreateAnnotationDTO {
     members?: MemberDTO[];
 
     @IsOptional()
+    @IsArray({ message: "Preciso ser um array" })
+    @ApiProperty({
+        description: "Anexos da anotação",
+    })
+    attachments?: AttachmentDTO[];
+
+    @IsOptional()
     @IsArray()
     @IsString({ each: true })
     groupId?: string[];
@@ -78,9 +86,17 @@ export class UpdateAnnotationDTO {
     })
     title?: string;
 
-    @ValidateNested({ each: true })
-    @Type(() => ContentDTO)
-    @Transform((value) => ContentDTO)
+    @Transform(({ value }) => {
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch (error) {
+                throw new BadRequestException('Formato Json invalido');
+            }
+        }
+        return value;
+    }, { toClassOnly: true })
+    @IsArray()
     @ApiProperty({
         description: 'Conteúdo da anotação',
         example: [
@@ -88,7 +104,7 @@ export class UpdateAnnotationDTO {
             { type: 'image', value: 'imagem.jpg' },
         ],
     })
-    content?: ContentDTO;
+    content?: ContentDTO[];
 
     @IsOptional()
     @IsString()
@@ -116,7 +132,7 @@ export class UpdateAnnotationDTO {
     @ApiProperty({ type: AttachmentDTO, required: false })
     @IsOptional()
     @IsArray()
-    attachment?: AttachmentDTO[];
+    attachments?: AttachmentDTO[];
 
     @IsOptional()
     @IsArray()

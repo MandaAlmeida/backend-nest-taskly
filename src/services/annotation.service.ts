@@ -14,13 +14,11 @@ export class AnnotationService {
         private uploadService: UploadService
     ) { }
 
-    async create(annotation: CreateAnnotationDTO, user: TokenPayloadSchema, image?: Express.Multer.File) {
+    async create(annotation: CreateAnnotationDTO, user: TokenPayloadSchema, files?: Express.Multer.File[]) {
         const { title, content, category, members } = annotation;
 
-        const { sub: userId } = user;
+        const userId = user.sub
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId });
-
-        console.log(annotation)
 
         if (existingAnnotation) {
             throw new ConflictException("Essa anotacao já existe");
@@ -35,29 +33,44 @@ export class AnnotationService {
                 throw new ConflictException("Não é permitido membros duplicados.");
             }
         }
-        let uploadedFileUrl;
 
-        if (image) {
-            const result = await this.uploadService.upload(image);
-            uploadedFileUrl = result;
+        let uploadedFileUrls: AttachmentDTO[] = [];
+
+        if (files && files.length > 0) {
+            for (const file of files) {
+                const result = await this.uploadService.upload(file);
+                uploadedFileUrls.push(result);
+            }
         }
 
-        if (content) {
+
+
+        if (content && uploadedFileUrls.length > 0) {
+            let imageIndex = 0;
+
             content.forEach((block) => {
-                if (block.type === 'image') {
-                    block.value = uploadedFileUrl;
+                if (block.type === 'image' && imageIndex < uploadedFileUrls.length) {
+                    block.value = uploadedFileUrls[imageIndex];
+                    imageIndex++;
                 }
             });
         }
 
+        let attachment: AttachmentDTO[] = [];
 
+        if (files && uploadedFileUrls.length > 0) {
+            attachment = uploadedFileUrls.filter(
+                (block) => !block.type.startsWith('image/')
+            );
+        }
 
         const annotationToCreate = {
             title,
             content,
             category,
             members,
-            createdUserId: userId
+            createdUserId: userId,
+            attachments: attachment
         };
 
         const createdAnnotation = new this.annotationModel(annotationToCreate);
@@ -67,10 +80,10 @@ export class AnnotationService {
         return annotationToCreate;
     }
 
-    async createByGroup(annotation: CreateAnnotationDTO, groupId: string, user: TokenPayloadSchema, file?: Express.Multer.File) {
+    async createByGroup(annotation: CreateAnnotationDTO, groupId: string, user: TokenPayloadSchema, files?: Express.Multer.File[]) {
         const { title, content, category, members } = annotation;
 
-        const { sub: userId } = user;
+        const userId = user.sub
         const existingAnnotation = await this.annotationModel.findOne({ title, category, createdUserId: userId, groupId });
 
         console.log(annotation)
@@ -89,11 +102,34 @@ export class AnnotationService {
             }
         }
 
-        let uploadedFileUrl;
+        let uploadedFileUrls: AttachmentDTO[] = [];
 
-        if (file) {
-            const result = await this.uploadService.upload(file);
-            uploadedFileUrl = result || [];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                const result = await this.uploadService.upload(file);
+                uploadedFileUrls.push(result);
+            }
+        }
+
+
+
+        if (content && uploadedFileUrls.length > 0) {
+            let imageIndex = 0;
+
+            content.forEach((block) => {
+                if (block.type === 'image' && imageIndex < uploadedFileUrls.length) {
+                    block.value = uploadedFileUrls[imageIndex];
+                    imageIndex++;
+                }
+            });
+        }
+
+        let attachment: AttachmentDTO[] = [];
+
+        if (files && uploadedFileUrls.length > 0) {
+            attachment = uploadedFileUrls.filter(
+                (block) => !block.type.startsWith('image/')
+            );
         }
 
         const annotationToCreate = {
@@ -101,7 +137,8 @@ export class AnnotationService {
             content,
             category,
             members,
-            createdUserId: userId
+            createdUserId: userId,
+            attachments: attachment
         };
 
         const createdAnnotation = new this.annotationModel(annotationToCreate);
@@ -111,7 +148,7 @@ export class AnnotationService {
     }
 
     async fetchByUser(user: TokenPayloadSchema, page: number) {
-        const { sub: userId } = user;
+        const userId = user.sub
 
         const limit = 10;
         const skip = (page - 1) * limit;
@@ -121,7 +158,7 @@ export class AnnotationService {
     }
 
     async fetchByGroup(user: TokenPayloadSchema) {
-        const { sub: userId } = user;
+        const userId = user.sub
 
         const filter = {
             $or: [
@@ -140,7 +177,7 @@ export class AnnotationService {
     }
 
     async fetchByPage(user: TokenPayloadSchema, page: number) {
-        const { sub: userId } = user;
+        const userId = user.sub
 
         const filter = {
             $or: [
@@ -154,7 +191,7 @@ export class AnnotationService {
     }
 
     async fetchBySearch(query: string, user: TokenPayloadSchema) {
-        const { sub: userId } = user;
+        const userId = user.sub
         const regex = new RegExp(query, 'i');
         const isDate = !isNaN(Date.parse(query));
         const filters: any[] = [
@@ -183,37 +220,70 @@ export class AnnotationService {
         return annotations;
     }
 
-    async fetchAttachment(fileName: string) {
-        const result = await this.uploadService.getFile(fileName);
-        return result
-    }
-
-    async update(annotationId: string, annotation: UpdateAnnotationDTO, file: Express.Multer.File, user: TokenPayloadSchema) {
-        const { title, content, category } = annotation;
-        const { sub: userId } = user;
+    async update(
+        annotationId: string,
+        annotation: UpdateAnnotationDTO,
+        user: TokenPayloadSchema,
+        files?: Express.Multer.File[]
+    ) {
+        const { title, content, category, attachments } = annotation;
+        const userId = user.sub;
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);
 
-        if (!existingAnnotation) throw new ConflictException("Essa anotacao não existe");
+        if (!existingAnnotation) throw new ConflictException("Essa anotação não existe");
 
         const existingAnnotationName = await this.annotationModel.findOne({ title, category, createdUserId: userId });
 
-        if (existingAnnotationName) throw new ConflictException("Ja existe uma anotacao com esse nome");
+        if (existingAnnotation._id.toString() !== existingAnnotationName?._id.toString()) throw new ConflictException("Já existe uma anotação com esse nome nessa categoria");
 
-        const annotationToUpdate: any = {};
+        const annotationToUpdate: UpdateAnnotationDTO = {};
 
         if (title) annotationToUpdate.title = title;
         if (category) annotationToUpdate.category = category;
-        if (content) annotationToUpdate.content = content;
-        if (file) {
-            const newAttachment = await this.uploadService.upload(file);
 
-            annotationToUpdate.attachment = [
-                ...(existingAnnotation.attachment || []),
-                newAttachment,
-            ];
+        // Processar arquivos (imagens e anexos)
+        if (files) {
+            let uploadedFileUrls: AttachmentDTO[] = [];
+
+            // Upload de novos arquivos (imagens ou documentos)
+            if (files.length > 0) {
+                for (const file of files) {
+                    const result = await this.uploadService.upload(file);
+                    uploadedFileUrls.push(result);
+                }
+            }
+
+            const attachment = files.filter(file => file.fieldname === 'attachments')
+            const image = files.filter(file => file.fieldname === 'files')
+
+            // Se houver novos arquivos, atualize os arquivos anexos
+            if (existingAnnotation.attachments && attachment && uploadedFileUrls.length > 0) {
+                const newAttachments = uploadedFileUrls.filter(file => !file.type.startsWith('image/'));
+                annotationToUpdate.attachments = [...existingAnnotation.attachments, ...newAttachments];
+
+                console.log('entrei aqui', annotationToUpdate.attachments)
+            }
+
+            // Substituir as imagens no conteúdo
+            if (image && content && uploadedFileUrls.length > 0) {
+                let imageIndex = 0;
+
+                content.forEach((block) => {
+                    if (block.type === 'image' && imageIndex < uploadedFileUrls.length) {
+                        block.value = uploadedFileUrls[imageIndex];
+                        imageIndex++;
+                    }
+                });
+            }
         }
 
+        // Atualizar o campo 'content' com o novo conteúdo após as imagens terem sido processadas
+        if (content && content.length > 0) {
+            annotationToUpdate.content = content;  // Atualizando o campo content com o novo conteúdo
+        }
+
+        // Atualizar a anotação no banco de dados
         const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
             annotationId,
             annotationToUpdate,
@@ -221,12 +291,13 @@ export class AnnotationService {
         ).exec();
 
         return updatedAnnotation;
-
     }
 
-    async updateByGroup(annotationId: string, groupId: string, annotation: UpdateAnnotationDTO, file: Express.Multer.File, user: TokenPayloadSchema) {
-        const { title, content, category, attachment } = annotation;
-        const { sub: userId } = user;
+
+
+    async updateByGroup(annotationId: string, groupId: string, annotation: UpdateAnnotationDTO, files: Express.Multer.File[], user: TokenPayloadSchema) {
+        const { title, content, category } = annotation;
+        const userId = user.sub
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);
 
@@ -241,13 +312,36 @@ export class AnnotationService {
         if (title) annotationToUpdate.title = title;
         if (category) annotationToUpdate.category = category;
         if (content) annotationToUpdate.content = content;
-        if (file) {
-            const newAttachment = await this.uploadService.upload(file);
+        if (files) {
+            let uploadedFileUrls: AttachmentDTO[] = [];
 
-            annotationToUpdate.attachment = [
-                ...(existingAnnotation.attachment || []),
-                newAttachment,
-            ];
+            if (files && files.length > 0) {
+                for (const file of files) {
+                    const result = await this.uploadService.upload(file);
+                    uploadedFileUrls.push(result);
+                }
+            }
+
+
+
+            if (content && uploadedFileUrls.length > 0) {
+                let imageIndex = 0;
+
+                content.forEach((block) => {
+                    if (block.type === 'image' && imageIndex < uploadedFileUrls.length) {
+                        block.value = uploadedFileUrls[imageIndex];
+                        imageIndex++;
+                    }
+                });
+            }
+
+            let attachment: AttachmentDTO[] = [];
+
+            if (files && uploadedFileUrls.length > 0) {
+                attachment = uploadedFileUrls.filter(
+                    (block) => !block.type.startsWith('image/')
+                );
+            }
         }
 
         const updatedAnnotation = await this.annotationModel.findByIdAndUpdate(
@@ -342,13 +436,13 @@ export class AnnotationService {
     }
 
     async deleteMember(annotationId: string, memberId: string, user: TokenPayloadSchema) {
-        const { sub: userId } = user;
+        const userId = user.sub
 
         const annotation = await this.annotationModel.findById(annotationId).exec();
 
         if (!annotation) throw new NotFoundException("Anotatacao não encontrada");
 
-        if (annotation.createdUserId.toString() !== userId) throw new ForbiddenException("Você não tem permissão para excluir esta annotation");
+        if (annotation.createdUserId.toString() !== userId) throw new ForbiddenException("Você não tem permissão para excluir membros desta anotação");
 
         const existingAnnotation = await this.annotationModel.findById(annotationId);
 
@@ -356,7 +450,7 @@ export class AnnotationService {
 
         const existingMember = existingAnnotation.members.some(member => member.userId.toString() === memberId)
 
-        if (!existingMember) throw new ConflictException("Membro nao existe nessa anotação");
+        if (!existingMember) throw new ConflictException("Membro não existe nessa anotação");
 
 
         const updatedMembers = annotation.members?.filter(
@@ -432,8 +526,13 @@ export class AnnotationService {
 
         if (!annotation) throw new NotFoundException("Annotation não encontrada");
 
-        await this.annotationModel.findByIdAndDelete(annotationId).exec();
+        annotation.content.filter(content => {
+            if (content.type === "image" && typeof content.value !== "string") {
+                this.uploadService.delete(content.value.url)
+            }
+        });
 
+        await this.annotationModel.findByIdAndDelete(annotationId).exec();
         return { message: "Anotacao excluída com sucesso" };
     }
 
@@ -443,28 +542,16 @@ export class AnnotationService {
         if (!annotation) throw new NotFoundException("Anotação não encontrada");
 
 
-        const attachments = annotation.attachment as AttachmentDTO[];
+        const attachments = annotation.attachments as AttachmentDTO[];
 
         const found = attachments.find(att => att.url === attachmentName);
-        if (!found) {
-            throw new NotFoundException("Anexo não encontrado");
-        }
+        if (!found) throw new NotFoundException("Anexo não encontrado");
+
 
         const newAttachment = attachments.filter(attachment => attachment.url !== attachmentName)
         this.uploadService.delete(attachmentName)
-        await this.annotationModel.findByIdAndUpdate(annotationId, { attachment: newAttachment }, { new: true })
+        await this.annotationModel.findByIdAndUpdate(annotationId, { attachments: newAttachment }, { new: true })
 
-        return { message: "Anexo excluído com sucesso" };
-    }
-
-    async deleteAnnotationByGroup(annotationId: string, groupId: string) {
-        const annotation = await this.annotationModel.findOne({ _id: annotationId, groupId }).exec();
-
-        if (!annotation) throw new NotFoundException("Anotacao não encontrada");
-
-        await this.annotationModel.findByIdAndDelete(annotationId).exec();
-
-        return { message: "Anotacao excluída com sucesso" };
     }
 
 }
