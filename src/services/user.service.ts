@@ -166,7 +166,7 @@ export class UserService {
 
         // Verifica se o email já está em uso
         const existingEmail = await this.userModel.findOne({ email });
-        if (existingEmail) throw new ConflictException('Este usuário já existe');
+        if (existingEmail?._id.toString() !== existingUser._id.toString()) throw new ConflictException('Este usuário já existe');
 
         // Verifica se as senhas são iguais
         if (password !== passwordConfirmation) throw new BadRequestException("As senhas precisam ser iguais");
@@ -174,14 +174,19 @@ export class UserService {
         // Prepara os dados para atualizar o usuário
         const userToUpdate: any = {};
 
+        console.log(file)
+
         if (name) userToUpdate.name = name;
         if (email) userToUpdate.email = email;
         if (password) userToUpdate.password = await hash(password, 8);
         if (file) {
+
             // Se houver arquivo, faz o upload e atualiza a imagem
             const result = await this.uploadService.upload(file);
             this.UploadService.delete(existingUser?.imageUser);
             userToUpdate.imageUser = result.url;
+
+
         }
 
         // Atualiza o usuário no banco

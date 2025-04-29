@@ -46,7 +46,7 @@ export class UserController {
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: UpdateUserDTO })
     @Put("update")
-    async update(@Body() updateUser: UpdateUserDTO, @CurrentUser() user: TokenPayloadSchema, file: Express.Multer.File) {
+    async update(@Body() updateUser: UpdateUserDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFile() file: Express.Multer.File) {
         return this.UserService.update(updateUser, user, file)
     }
 

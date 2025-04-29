@@ -130,6 +130,15 @@ export class UpdateUserDTO {
     })
     birth: string;
 
+    @ApiProperty({
+        type: 'string',
+        format: 'binary',
+        required: false,
+        description: "Arquivo do usuário (upload)",
+    })
+    @IsOptional()
+    file?: string;
+
     @IsOptional()
     @IsStrongPassword(
         {
