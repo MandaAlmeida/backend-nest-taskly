@@ -29,14 +29,15 @@ export class Task {
     @Prop({ required: true })
     priority: string;
 
-    @Prop({ required: true })
+    @Prop({ required: true, index: true })
     date: Date;
 
-    @Prop({ required: true })
+    @Prop({ required: true, index: true })
     status: Status;
 
-    @Prop({ required: true })
+    @Prop({ required: true, index: true })
     userId: string;
+
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

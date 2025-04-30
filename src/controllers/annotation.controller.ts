@@ -7,7 +7,7 @@ import { CreateAnnotationDTO, UpdateAnnotationDTO, } from '@/contracts/annotatio
 import { Roles } from '@/decorator/roles.decorator';
 import { ApiTags, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { RoleGuard } from '@/guards/roles.guard';
-import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Annotation')
 @Controller("annotation")
@@ -20,24 +20,30 @@ export class AnnotationController {
     ) { }
 
     @Post("create")
-    @UseInterceptors(AnyFilesInterceptor())
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'files', maxCount: 5 },
+        { name: 'attachments', maxCount: 10 },
+    ]))
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: CreateAnnotationDTO })
     async create(
         @Body(new ValidationPipe({ transform: true })) body: CreateAnnotationDTO,
         @CurrentUser() user: TokenPayloadSchema,
-        @UploadedFiles() files?: Express.Multer.File[]
+        @UploadedFiles() files: { files?: Express.Multer.File[], attachments?: Express.Multer.File[] }
     ) {
-        return this.AnnotationService.create(body, user, files);
+        return this.AnnotationService.create(body, user, files.files, files.attachments);
     }
 
     @Roles("ADMIN", "EDIT", "DELETE")
     @Post("createByGroup/:groupId")
-    @UseInterceptors(AnyFilesInterceptor())
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'files', maxCount: 5 },
+        { name: 'attachments', maxCount: 10 },
+    ]))
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: CreateAnnotationDTO })
-    async createByGroup(@Body() body: CreateAnnotationDTO, @Param("groupId") groupId: string, @CurrentUser() user: TokenPayloadSchema, @UploadedFile() files?: Express.Multer.File[]) {
-        return this.AnnotationService.createByGroup(body, groupId, user, files);
+    async createByGroup(@Body() body: CreateAnnotationDTO, @Param("groupId") groupId: string, @CurrentUser() user: TokenPayloadSchema, @UploadedFiles() files: { files?: Express.Multer.File[], attachments?: Express.Multer.File[] }) {
+        return this.AnnotationService.createByGroup(body, groupId, user, files.files, files.attachments);
     }
 
     @Get("fetchByUser")
@@ -67,20 +73,26 @@ export class AnnotationController {
 
     @Roles("ADMIN", "EDIT", "DELETE")
     @Put("update/:annotationId")
-    @UseInterceptors(AnyFilesInterceptor())
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'files', maxCount: 5 },
+        { name: 'attachments', maxCount: 10 },
+    ]))
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: UpdateAnnotationDTO })
-    async update(@Param('annotationId') annotationId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFiles() files?: Express.Multer.File[]) {
-        return this.AnnotationService.update(annotationId, annotation, user, files)
+    async update(@Param('annotationId') annotationId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFiles() files: { files?: Express.Multer.File[], attachments?: Express.Multer.File[] }) {
+        return this.AnnotationService.update(annotationId, annotation, user, files.files, files.attachments)
     }
 
     @Roles("ADMIN", "EDIT", "DELETE")
     @Put("update/:annotationId/groups/:groupId")
-    @UseInterceptors(AnyFilesInterceptor())
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'files', maxCount: 5 },
+        { name: 'attachments', maxCount: 10 },
+    ]))
     @ApiConsumes('multipart/form-data')
     @ApiBody({ type: UpdateAnnotationDTO })
-    async updateByGroup(@Param('annotationId') annotationId: string, @Param('groupId') groupId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFiles() files: Express.Multer.File[]) {
-        return this.AnnotationService.updateByGroup(annotationId, groupId, annotation, files, user)
+    async updateByGroup(@Param('annotationId') annotationId: string, @Param('groupId') groupId: string, @Body() annotation: UpdateAnnotationDTO, @CurrentUser() user: TokenPayloadSchema, @UploadedFiles() files: { files?: Express.Multer.File[], attachments?: Express.Multer.File[] }) {
+        return this.AnnotationService.updateByGroup(annotationId, groupId, annotation, user, files.files, files.attachments)
     }
 
     @Roles("ADMIN")
@@ -102,8 +114,8 @@ export class AnnotationController {
     }
 
     @Roles("ADMIN", "DELETE")
-    @Delete("delete/:annotationId/attachment")
-    async deleteAttachment(@Param('annotationId') annotationId: string, @Query("anexo") attachmentName: string) {
+    @Delete("delete/:annotationId/attachment/:attachmentName")
+    async deleteAttachment(@Param('annotationId') annotationId: string, @Param("attachmentName") attachmentName: string) {
         return this.AnnotationService.deleteAttachment(annotationId, attachmentName);
     }
 

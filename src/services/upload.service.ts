@@ -40,7 +40,8 @@ export class UploadService {
     async getFile(fileName: string) {
         const url = this.envService.get("URL_PUBLIC_GET_IMAGE");
         const fileURL = `${url}${fileName}`;
-        return fileURL;
+
+        return { url: fileURL };
     }
 
     /**
@@ -48,14 +49,12 @@ export class UploadService {
      */
     async upload(file: UploadDTO) {
         // Valida tipo MIME do arquivo
-        if (!this.allowedMimeTypes.includes(file.mimetype)) {
-            throw new BadRequestException('Tipo de arquivo não permitido. Somente PDF, imagens e documentos Word são permitidos.');
-        }
+        if (!this.allowedMimeTypes.includes(file.mimetype)) throw new BadRequestException('Tipo de arquivo não permitido. Somente PDF, imagens e documentos Word são permitidos.');
+
 
         // Valida tamanho do arquivo
-        if (file.size > this.maxFileSize) {
-            throw new BadRequestException('O arquivo excede o tamanho máximo permitido de 15MB.');
-        }
+        if (file.size > this.maxFileSize) throw new BadRequestException('O arquivo excede o tamanho máximo permitido de 15MB.');
+
 
         // Gera nome único para o arquivo
         const uploadId = randomUUID();
